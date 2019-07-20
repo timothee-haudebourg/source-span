@@ -1,6 +1,10 @@
 use std::fmt;
 
 mod position;
+
+/// Lazy string buffer that fills up on demand.
+pub mod lazy;
+
 pub use position::Position;
 
 /// Span in a source file.
@@ -123,6 +127,15 @@ impl Span {
     /// Set the span to [`next`](Span::next) (`[end, end]`).
     pub fn clear(&mut self) {
         self.start = self.end;
+    }
+}
+
+impl From<Position> for Span {
+    fn from(pos: Position) -> Span {
+        Span {
+            start: pos,
+            end: pos
+        }
     }
 }
 
