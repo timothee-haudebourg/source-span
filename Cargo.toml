@@ -10,5 +10,13 @@ repository = "https://github.com/timothee-haudebourg/source-span"
 documentation = "https://docs.rs/source-span"
 license = "MIT/Apache-2.0"
 
+[features]
+default = ["colors"]
+
+colors = ["terminal-escapes"]
+
+[dependencies]
+terminal-escapes = { version = "0.1.1", optional = true }
+
 [dev-dependencies]
 utf8-decode = "*"

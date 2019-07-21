@@ -37,9 +37,9 @@ impl<I: Iterator<Item=Result<char>>> Inner<I> {
     /// Returns `true` if a new line has been added. Returns `false` if the source stream is
     /// done.
 	fn read_line(&mut self) -> bool {
-        if self.result.is_none() {
-            let line = self.span.begin().line;
-            while line == self.span.begin().line {
+        if self.error.is_none() {
+            let line = self.span.end().line;
+            while line == self.span.end().line {
                 match self.input.next() {
                     Some(Ok(c)) => {
                         self.data.push(c);
@@ -64,21 +64,23 @@ impl<I: Iterator<Item=Result<char>>> Inner<I> {
         }
 	}
 
-	/// Get the char at the given position if it is in the buffer.
+	/// Get the index of the char at the given cursor position if it is in the buffer.
     /// If it is not in the buffer but after the buffered content, the input stream will be read
     /// until the buffer span includes the given position.
     ///
     /// Returns `None` if the given position if previous to the buffer start positions, if the
     /// source stream ends before the given position, or if the line at the given position is
     /// shorter than the given position column.
-	fn get(&mut self, pos: Position) -> Option<Result<char>> {
+	fn index_at(&mut self, pos: Position) -> Option<Result<usize>> {
 		if pos < self.span.start() {
 			None
 		} else {
-			while pos >= self.span.end() && self.read_line() {}
+			while pos >= self.span.end() && self.read_line() { }
 
 			if pos >= self.span.end() {
-				match self.error {
+                let mut error = None;
+                std::mem::swap(&mut error, &mut self.error);
+				match error {
                     Some(e) => Some(Err(e)),
                     None => None
                 }
@@ -86,23 +88,43 @@ impl<I: Iterator<Item=Result<char>>> Inner<I> {
                 // line index relative to the first line of the buffer.
 				let relative_line = pos.line - self.span.start().line;
                 // get the index of the char of the begining of the line in the buffer.
-                let i = self.lines[relative_line];
+                let mut i = self.lines[relative_line];
                 // place a virtual cursor at the begining of the target line.
-				let cursor = Position::new(i, 0);
+				let mut cursor = Position::new(pos.line, 0);
 
                 while cursor < pos {
-                    cursor.push(self.data[i]);
+                    cursor = cursor.next(self.data[i]);
                     i += 1;
                 }
 
                 if cursor == pos {
                     // found it!
-                    Some(Ok(self.data[i]))
+                    Some(Ok(i))
                 } else {
                     // the position does not exist in the buffer.
                     None
                 }
 			}
+		}
+	}
+
+	/// Get the character at the given index.
+	///
+	/// If it is not in the buffer but after the buffered content, the input stream will be read
+    /// until the buffer span includes the given position.
+	/// Returns `None` if the source stream ends before the given position.
+	fn get(&mut self, i: usize) -> Option<Result<char>> {
+		while i >= self.data.len() && self.read_line() { }
+
+		if i >= self.data.len() {
+			let mut error = None;
+			std::mem::swap(&mut error, &mut self.error);
+			match error {
+				Some(e) => Some(Err(e)),
+				None => None
+			}
+		} else {
+			Some(Ok(self.data[i]))
 		}
 	}
 }
@@ -115,10 +137,26 @@ impl<I: Iterator<Item=Result<char>>> Buffer<I> {
 				input: input,
 				error: None,
 				data: Vec::new(),
-                lines: vec![position],
+                lines: vec![0],
 				span: position.into()
 			})
 		}
+	}
+
+	/// Get the span of the entire buffered data.
+	pub fn span(&self) -> Span {
+		self.p.borrow().span
+	}
+
+	/// Get the index of the char at the given cursor position if it is in the buffer.
+    /// If it is not in the buffer but after the buffered content, the input stream will be read
+    /// until the buffer span includes the given position.
+    ///
+    /// Returns `None` if the given position if previous to the buffer start positions, if the
+    /// source stream ends before the given position, or if the line at the given position is
+    /// shorter than the given position column.
+	pub fn index_at(&self, pos: Position) -> Option<Result<usize>> {
+		self.p.borrow_mut().index_at(pos)
 	}
 
     /// Get the char at the given position if it is in the buffer.
@@ -128,8 +166,21 @@ impl<I: Iterator<Item=Result<char>>> Buffer<I> {
     /// Returns `None` if the given position if previous to the buffer start positions, if the
     /// source stream ends before the given position, or if the line at the given position is
     /// shorter than the given position column.
-	pub fn get(&self, pos: Position) -> Option<Result<char>> {
-		self.p.borrow_mut().get(pos)
+	pub fn at(&self, pos: Position) -> Option<Result<char>> {
+		match self.index_at(pos) {
+			Some(Ok(i)) => self.p.borrow_mut().get(i),
+			Some(Err(e)) => Some(Err(e)),
+			None => None
+		}
+	}
+
+	/// Get the character at the given index.
+	///
+	/// If it is not in the buffer but after the buffered content, the input stream will be read
+    /// until the buffer span includes the given position.
+	/// Returns `None` if the source stream ends before the given position.
+	fn get(&self, i: usize) -> Option<Result<char>> {
+		self.p.borrow_mut().get(i)
 	}
 
     /// Returns an iterator through the characters of the buffer from the begining of it.
@@ -139,7 +190,7 @@ impl<I: Iterator<Item=Result<char>>> Buffer<I> {
 	pub fn iter(&self) -> Iter<I> {
 		Iter {
 			buffer: &self,
-			pos: self.p.borrow().start
+			i: Some(Ok(0))
 		}
 	}
 
@@ -152,7 +203,7 @@ impl<I: Iterator<Item=Result<char>>> Buffer<I> {
 	pub fn iter_from(&self, pos: Position) -> Iter<I> {
 		Iter {
 			buffer: &self,
-			pos: std::cmp::max(self.p.borrow().start, pos)
+			i: self.index_at(std::cmp::max(self.p.borrow().span.start(), pos))
 		}
 	}
 }
@@ -164,20 +215,34 @@ impl<I: Iterator<Item=Result<char>>> Buffer<I> {
 /// stream until the stream itself return `None`.
 pub struct Iter<'b, I: 'b + Iterator<Item=Result<char>>> {
 	buffer: &'b Buffer<I>,
-    pos: Position
+    i: Option<Result<usize>>
 }
 
 impl<'b, I: 'b + Iterator<Item=Result<char>>> Iterator for Iter<'b, I> {
 	type Item = Result<char>;
 
 	fn next(&mut self) -> Option<Result<char>> {
-		match self.buffer.get(self.pos) {
-			Some(Ok(c)) => {
-				self.pos = self.pos.next(c);
-				Some(Ok(c))
+		match &mut self.i {
+			Some(Ok(ref mut i)) => {
+				match self.buffer.get(*i) {
+					Some(Ok(c)) => {
+						*i = *i+1;
+						Some(Ok(c))
+					},
+		            Some(Err(e)) => Some(Err(e)),
+					None => None
+				}
 			},
-            Some(Err(e)) => Some(Err(e)),
-			None => None
+			None => None,
+			ref mut i => {
+				let mut new_i = None;
+				std::mem::swap(&mut new_i, i);
+				if let Some(Err(e)) = new_i {
+					Some(Err(e))
+				} else {
+					unreachable!()
+				}
+			},
 		}
 	}
 }

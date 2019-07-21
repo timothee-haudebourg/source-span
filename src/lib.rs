@@ -1,9 +1,67 @@
-use std::fmt;
+#[cfg(feature="terminal-escapes")]
+extern crate terminal_escapes;
+
+use std::cmp::{PartialOrd, Ord, Ordering};
 
 mod position;
 
 /// Lazy string buffer that fills up on demand.
 pub mod lazy;
+
+/// Source code formatter with span highlights and notes.
+///
+/// Here are the kind of things you can produce with the [`Formatter`](fmt::Formatter):
+/// <pre><font color="#729FCF"><b>01 |     </b></font>pub fn fibonacci(n: i32) -&gt; u64 {
+///    <font color="#729FCF"><b>|                     ________        </b></font><font color="#EF2929"><b>^</b></font>
+/// <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>|  </b></font><font color="#EF2929"><b>__________________________</b></font><font color="#729FCF"><b>|</b></font><font color="#EF2929"><b>________|</b></font>
+/// <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|                          </b></font><font color="#729FCF"><b>|</b></font>
+/// <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>|                          </b></font><font color="#729FCF"><b>this is a pair of parenthesis</b></font>
+/// <font color="#729FCF"><b>02 | </b></font><font color="#EF2929"><b>|           </b></font>if n &lt; 0 {
+///    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|  __________________^</b></font>
+/// <font color="#729FCF"><b>03 | </b></font><font color="#EF2929"><b>| |                 </b></font>panic!(&quot;{} is negative!&quot;, n);
+///    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>^</b></font><font color="#8AE234"><b>&quot;</b></font><font color="#EF2929"><b>^^             </b></font><font color="#8AE234"><b>&quot;   </b></font><font color="#729FCF"><b>^ this is a pair of parenthesis</b></font>
+/// <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>|</b></font><font color="#8AE234"><b>|_</b></font><font color="#EF2929"><b>|</b></font><font color="#8AE234"><b>_____________|   </b></font><font color="#729FCF"><b>|</b></font>
+/// <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>|__</b></font><font color="#EF2929"><b>|</b></font><font color="#729FCF"><b>_____________</b></font><font color="#8AE234"><b>|</b></font><font color="#729FCF"><b>___|</b></font>
+/// <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                          |             </b></font><font color="#8AE234"><b>|</b></font>
+/// <font color="#8AE234"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                          this is a pair of braces</b></font>
+/// <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                                        </b></font><font color="#8AE234"><b>|</b></font>
+/// <font color="#8AE234"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                                        </b></font><font color="#8AE234"><b>this is a string</b></font>
+/// <font color="#729FCF"><b>04 | </b></font><font color="#EF2929"><b>| |         </b></font>} else if n == 0 {
+///    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |_________^                ^</b></font>
+/// <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|  _________|________________|</b></font>
+/// <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |         |</b></font>
+/// <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |         this is a pair of braces</b></font>
+/// <font color="#729FCF"><b>05 | </b></font><font color="#EF2929"><b>| |                 </b></font>panic!(&quot;zero is not a right argument to fibonacci()!&quot;);
+///    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>^</b></font><font color="#8AE234"><b>&quot;                                         </b></font><font color="#729FCF"><b>__ </b></font><font color="#8AE234"><b>&quot;</b></font><font color="#729FCF"><b>^ this is a pair of parenthesis</b></font>
+/// <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>|</b></font><font color="#8AE234"><b>|__________________________________________</b></font><font color="#729FCF"><b>|</b></font><font color="#8AE234"><b>_|</b></font><font color="#729FCF"><b>|</b></font>
+/// <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>|___________________________________________|_</b></font><font color="#8AE234"><b>|</b></font><font color="#729FCF"><b>|</b></font>
+/// <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                                                                   </b></font><font color="#729FCF"><b>| </b></font><font color="#8AE234"><b>|</b></font>
+/// <font color="#8AE234"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                                                                   </b></font><font color="#729FCF"><b>this is a pair of parenthesis</b></font>
+/// <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                                                                     </b></font><font color="#8AE234"><b>|</b></font>
+/// <font color="#8AE234"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                                                                     </b></font><font color="#8AE234"><b>this is a string</b></font>
+/// <font color="#729FCF"><b>06 | </b></font><font color="#EF2929"><b>| |         </b></font>} else if n == 1 {
+///    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |_________^                ^</b></font>
+/// <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|  _________|________________|</b></font>
+/// <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |         |</b></font>
+/// <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |         this is a pair of braces</b></font>
+/// <font color="#729FCF"><b>07 | </b></font><font color="#EF2929"><b>| |                 </b></font>return 1;
+/// <font color="#729FCF"><b>08 | </b></font><font color="#EF2929"><b>| |         </b></font>}
+///    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |_________^ this is a pair of braces</b></font>
+/// <font color="#729FCF"><b>09 | </b></font><font color="#EF2929"><b>|   </b></font>
+/// <font color="#729FCF"><b>10 | </b></font><font color="#EF2929"><b>|           </b></font>let mut sum = 0;
+/// <font color="#729FCF"><b>11 | </b></font><font color="#EF2929"><b>|           </b></font>let mut last = 0;
+/// <font color="#729FCF"><b>12 | </b></font><font color="#EF2929"><b>|           </b></font>let mut curr = 1;
+/// <font color="#729FCF"><b>13 | </b></font><font color="#EF2929"><b>|           </b></font>for _i in 1..n {
+///    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|  ________________________^</b></font>
+/// <font color="#729FCF"><b>14 | </b></font><font color="#EF2929"><b>| |                 </b></font>sum = last + curr;
+/// <font color="#729FCF"><b>15 | </b></font><font color="#EF2929"><b>| |                 </b></font>last = curr;
+/// <font color="#729FCF"><b>16 | </b></font><font color="#EF2929"><b>| |                 </b></font>curr = sum;
+/// <font color="#729FCF"><b>17 | </b></font><font color="#EF2929"><b>| |         </b></font>}
+///    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |_________^ this is a pair of braces</b></font>
+/// <font color="#729FCF"><b>18 | </b></font><font color="#EF2929"><b>|           </b></font>sum
+/// <font color="#729FCF"><b>19 | </b></font><font color="#EF2929"><b>|   </b></font>}
+///    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|___^ this is a pair of braces</b></font></pre>
+pub mod fmt;
 
 pub use position::Position;
 
@@ -53,10 +111,13 @@ pub use position::Position;
 /// }
 /// ```
 ///
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Span {
     /// The position of the first character in the span.
     start: Position,
+
+    /// The last position in the span.
+    last: Position,
 
     /// The position of the character directly following the span.
     ///
@@ -64,28 +125,49 @@ pub struct Span {
     end: Position
 }
 
+impl PartialOrd for Span {
+    fn partial_cmp(&self, other: &Span) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Span {
+    fn cmp(&self, other: &Span) -> Ordering {
+        self.end.cmp(&other.end)
+    }
+}
+
 impl Span {
-    /// Create a new span from two positions.
+    /// Create a new span from three positions.
     ///
     /// If the `end` position is before the `start` position then the returned span will be
     /// `[start, start]`.
-    pub fn new(start: Position, end: Position) -> Span {
+    /// If the `last` position is before `start` or after `end` it will panic.
+    /// If the `last` position is equal to `end` while the span is not empty, it will panic.
+    pub fn new(start: Position, last: Position, mut end: Position) -> Span {
         if end < start {
-            Span {
-                start: start,
-                end: start
-            }
-        } else {
-            Span {
-                start: start,
-                end: end
-            }
+            end = start;
+        }
+
+        if last < start || (last >= end && end != start) {
+            panic!("invalid span ({:?}, {:?}, {:?})", start, last, end);
+        }
+
+        Span {
+            start: start,
+            last: last,
+            end: end
         }
     }
 
     /// Return the position of the first character in the span.
     pub fn start(&self) -> Position {
         self.start
+    }
+
+    /// Return the last position included in the span.
+    pub fn last(&self) -> Position {
+        self.last
     }
 
     /// Return the position of the character directly following the span.
@@ -95,12 +177,36 @@ impl Span {
         self.end
     }
 
+    /// Checks if the span is empty.
+    pub fn is_empty(&self) -> bool {
+        self.start == self.end
+    }
+
+    /// Checks if two span overlaps.
+    pub fn overlaps(&self, other: &Span) -> bool {
+        (self.start <= other.start && self.end > other.start) ||
+        (other.start <= self.start && other.end > self.start)
+    }
+
+    /// The number of lines covered by the span.
+    ///
+    /// It is at least one, even if the span is empty.
+    pub fn line_count(&self) -> usize {
+        self.end.line - self.start.line + 1
+    }
+
+    /// Checks if the span includes the given line.
+    pub fn includes_line(&self, line: usize) -> bool {
+        line >= self.start.line && line <= self.end.line
+    }
+
     /// Extends the span to include the next column.
     ///
     /// Note that this does not necessarily correspond
     /// to the next character (if it is a NL, or a full-width character for instance).
     /// To do that you can use the [`push`](Span::push) method.
     pub fn push_column(&mut self) {
+        self.last = self.end;
         self.end = self.end.next_column();
     }
 
@@ -108,11 +214,13 @@ impl Span {
     ///
     /// The end of the span will be placed at the begining of the next line.
     pub fn push_line(&mut self) {
+        self.last = self.end;
         self.end = self.end.next_line();
     }
 
     /// Extend the span to include the given character located at the spans `end` position.
     pub fn push(&mut self, c: char) {
+        self.last = self.end;
         self.end = self.end.next(c);
     }
 
@@ -120,6 +228,7 @@ impl Span {
     pub fn next(&self) -> Span {
         Span {
             start: self.end,
+            last: self.end,
             end: self.end
         }
     }
@@ -127,6 +236,7 @@ impl Span {
     /// Set the span to [`next`](Span::next) (`[end, end]`).
     pub fn clear(&mut self) {
         self.start = self.end;
+        self.last = self.end;
     }
 }
 
@@ -134,19 +244,20 @@ impl From<Position> for Span {
     fn from(pos: Position) -> Span {
         Span {
             start: pos,
+            last: pos,
             end: pos
         }
     }
 }
 
-impl fmt::Display for Span {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for Span {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "from {:?} to {:?}", self.start, self.end)
     }
 }
 
-impl fmt::Debug for Span {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for Span {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "[{:?}, {:?}]", self.start, self.end)
     }
 }

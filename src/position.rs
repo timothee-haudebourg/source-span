@@ -1,10 +1,11 @@
 use std::fmt;
+use std::cmp::{PartialOrd, Ord, Ordering};
 
 /// Position in a source file.
 ///
 /// This holds the line and column position of a character in a source file.
 /// Some operations are available to move position in a file. In partular, the [`next`](Position::next) method
-/// deduce the next cursor position after reading a given [`char`].
+/// computes the next cursor position after reading a given [`char`].
 ///
 /// ## Display
 ///
@@ -15,13 +16,28 @@ use std::fmt;
 ///
 /// Both of them will display lines and columns starting at `1` even though the internal
 /// representation starts at `0`.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Position {
     /// Line number, starting at `0`.
     pub line: usize,
 
     /// Column number, starting at `0`.
     pub column: usize
+}
+
+impl PartialOrd for Position {
+    fn partial_cmp(&self, other: &Position) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Position {
+    fn cmp(&self, other: &Position) -> Ordering {
+        match self.line.cmp(&other.line) {
+            Ordering::Equal => self.column.cmp(&other.column),
+            ord => ord
+        }
+    }
 }
 
 impl Position {
@@ -61,12 +77,29 @@ impl Position {
 
     /// Move to the position following the given [`char`].
     ///
-    /// ## New lines
+    /// ## Control characters
+    ///
+    /// This crate is intended to help with incremental lexing/parsing. Therefore, any control
+    /// character moving the cursor backward will be ignored: it will be
+    /// treated as a 0-width character with no semantics.
+    ///
+    /// ### New lines
     ///
     /// The `\n` character is interpreted with the Unix semantics, as the new line (NL) character.
     /// It will reset the column position to `0` and move to the next line.
-    /// However the Windows semantics of `\n` as a line feed (LF) may be supported in the future,
-    /// and you are welcome to add it as a contribution.
+    ///
+    /// ### Tabulations
+    ///
+    /// The `\t` will move the cursor to the next horizontal tab-top.
+    /// This function assumes there is a tab-stop every 8 columns.
+    /// Note that there is no standard on the size of a tabulation, however a length of 8 columns
+    /// seems typical.
+    ///
+    /// As of today, there is no way to use another tab length.
+    ///
+    /// I understand that this lacks of flexibility may become an issue in the near future,
+    /// and I will try to add this possibility. In the meantime, you are very welcome to contribute
+    /// if you need this feature right away.
     ///
     /// ## Full-width characters
     ///
@@ -77,8 +110,12 @@ impl Position {
         match c {
             '\n' => self.next_line(),
             '\r' => self.reset_column(),
-            c if c.is_alphanumeric() => self.next_column(),
-            _ => self.clone()
+            '\t' => Position {
+                line: self.line,
+                column: (self.column/8)*8 + 8
+            },
+            c if c.is_control() => *self,
+            _ => self.next_column()
         }
     }
 }
