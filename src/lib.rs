@@ -88,7 +88,7 @@ pub use position::Position;
 ///
 /// ## Example
 /// Here is a basic example computing the span of every word/token in a `char` stream.
-/// ```[rust]
+/// ```rust
 /// for c in chars {
 ///     let c = c?; // report eventual I/O errors.
 ///     if c.is_whitespace() {
