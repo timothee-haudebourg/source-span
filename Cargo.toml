@@ -19,4 +19,4 @@ colors = ["terminal-escapes"]
 terminal-escapes = { version = "0.1.1", optional = true }
 
 [dev-dependencies]
-utf8-decode = "*"
+utf8-decode = "1.0.0"
