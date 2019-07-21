@@ -1,10 +1,11 @@
 # Source Span
 
-This crate provides utilities to locate characters and ranges (span) of
-characters in a source file.
+This crate provides utilities to locate characters and ranges of characters
+(spans) in a source file. It also provides ways to print fragments of the source
+file with span informations, hints, errors, warning and notes,
+just like the `rustc` compiler.
 
-It also provides ways to print fragments of the source file with span
-informations, hints, errors, warning and notes, just like the `rustc` compiler.
+![Formatter example](examples/fib.png)
 
 I'm not really sure yet what is the best way to describe this crate (in
 terms of keywords, categories, short description and so on). If you have betters
