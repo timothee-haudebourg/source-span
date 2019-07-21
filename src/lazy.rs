@@ -1,7 +1,5 @@
-use std::cell::{RefCell, RefMut};
-use std::io::{Result, Error, Read, Bytes};
-use std::ops::{Deref, DerefMut};
-use std::fmt;
+use std::cell::{RefCell};
+use std::io::{Result, Error};
 
 use crate::{Position, Span};
 

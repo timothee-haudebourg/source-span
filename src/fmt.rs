@@ -6,7 +6,7 @@ use std::convert::TryInto;
 #[cfg(feature="colors")]
 use terminal_escapes::Color;
 
-use crate::{Position, Span};
+use crate::Span;
 
 /// Highlight format description.
 ///
@@ -512,7 +512,7 @@ impl LineBuffer {
 
     /// Return the index of a secondary line where every character between `i` (included) and
     /// `j` (excluded) is free (a whitespace).
-    fn find_free_line(&mut self, i: usize, j: usize, mut label: bool) -> usize {
+    fn find_free_line(&mut self, i: usize, j: usize, label: bool) -> usize {
         let mut index = 1;
         'next_line: loop {
             if index >= self.lines.len() {
@@ -630,8 +630,6 @@ impl Formatter {
     /// Create a [`String`] containing the content of the input iterator given span, with the
     /// previously added highlights.
     pub fn get<I: Iterator<Item=Result<char>>>(&self, input: I, span: Span) -> std::io::Result<String> {
-        use terminal_escapes::Sequence::*;
-
         let line_number_margin = if self.show_line_numbers {
             (((span.last().line+1) as f32).log10() as usize) + 4
         } else {
