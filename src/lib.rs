@@ -224,6 +224,37 @@ impl Span {
         self.end = self.end.next(c);
     }
 
+    /// Compute the union of two spans.
+    ///
+    /// If the two spans do not overlap, all positions in between will be included in the
+    /// resulting span.
+    pub fn union(&self, other: Span) -> Span {
+        if other.last > self.last && other.end > self.end {
+            Span {
+                start: std::cmp::min(self.start, other.start),
+                last: other.last,
+                end: other.end
+            }
+        } else {
+            Span {
+                start: std::cmp::min(self.start, other.start),
+                last: self.last,
+                end: self.end
+            }
+        }
+    }
+
+    /// Extend the span to the end of the given span.
+    ///
+    /// This is the *in-place* version of [`union`](Span::union), except that
+    /// nothing happens if the input span finishes before the end of `self`.
+    pub fn append(&mut self, other: Span) {
+        if other.last > self.last && other.end > self.end {
+            self.last = other.last;
+            self.end = other.end;
+        }
+    }
+
     /// Return the next span (defined as `[end, end]`).
     pub fn next(&self) -> Span {
         Span {
