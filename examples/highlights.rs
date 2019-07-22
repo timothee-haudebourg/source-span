@@ -4,7 +4,7 @@ extern crate source_span;
 use std::fs::File;
 use std::io::Read;
 use utf8_decode::UnsafeDecoder;
-use source_span::{Position, Span, fmt::{Formatter, Style}};
+use source_span::{Position, Span, fmt::{Formatter, Style, Color}};
 
 #[derive(Clone, Default)]
 pub struct Token {
@@ -25,7 +25,7 @@ fn main() -> std::io::Result<()> {
     let chars = UnsafeDecoder::new(file.bytes());
     let buffer = source_span::lazy::Buffer::new(chars, Position::default());
 
-    let mut fmt = Formatter::new();
+    let mut fmt = Formatter::new(Color::Blue);
 
     let mut tokens = Vec::new();
     let mut current = Token::default();
@@ -34,7 +34,7 @@ fn main() -> std::io::Result<()> {
     let mut opened = Vec::new();
     let mut groups = Vec::new();
 
-    let string_style = Style::new('^', '"', terminal_escapes::Color::Green);
+    let string_style = Style::new('^', '"', Color::Green);
 
     for c in buffer.iter() {
         let c = c?; // report eventual errors.

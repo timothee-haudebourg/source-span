@@ -4,7 +4,45 @@ use std::io::Result;
 use std::convert::TryInto;
 
 #[cfg(feature="colors")]
-use terminal_escapes::Color;
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Color {
+    Red,
+    Green,
+    Blue,
+    Magenta,
+    Yellow,
+    Cyan
+}
+
+#[cfg(feature="colors")]
+impl termion::color::Color for Color {
+    fn write_fg(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Color::*;
+        match self {
+            Red => termion::color::LightRed.write_fg(f),
+            Green => termion::color::LightGreen.write_fg(f),
+            Blue => termion::color::LightBlue.write_fg(f),
+            Magenta => termion::color::LightMagenta.write_fg(f),
+            Yellow => termion::color::LightYellow.write_fg(f),
+            Cyan => termion::color::LightCyan.write_fg(f)
+        }
+    }
+
+    fn write_bg(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Color::*;
+        match self {
+            Red => termion::color::LightRed.write_bg(f),
+            Green => termion::color::LightGreen.write_bg(f),
+            Blue => termion::color::LightBlue.write_bg(f),
+            Magenta => termion::color::LightMagenta.write_bg(f),
+            Yellow => termion::color::LightYellow.write_bg(f),
+            Cyan => termion::color::LightCyan.write_bg(f)
+        }
+    }
+}
+
+#[cfg(not(feature="colors"))]
+pub type Color = ();
 
 use crate::Span;
 
@@ -35,7 +73,7 @@ use crate::Span;
 ///
 /// If the `colors` feature is enabled, it is also possible to set a color to draw the lines.
 /// This will also make the highlights more bright (or bold), along with the line numbers.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy)]
 pub enum Style {
     /// Red curvy underline.
     Error,
@@ -50,7 +88,7 @@ pub enum Style {
     ///
     /// Specifies the line character, the boundary marker and the color (if the `colors` feature
     /// is enabled) used to render the highlight.
-    Custom(char, char, #[cfg(feature="colors")] Color)
+    Custom(char, char, Color)
 }
 
 impl Style {
@@ -61,7 +99,7 @@ impl Style {
     /// relevant.
     #[cfg(not(feature="colors"))]
     pub fn new(line: char, marker: char) -> Style {
-        Style::Custom(line, marker)
+        Style::Custom(line, marker, ())
     }
 
     /// Create a new custom highlight style.
@@ -81,9 +119,6 @@ impl Style {
             Error => '^',
             Warning => '^',
             Note => '_',
-            #[cfg(not(feature="colors"))]
-            Custom(line, _) => *line,
-            #[cfg(feature="colors")]
             Custom(line, _, _) => *line
         }
     }
@@ -95,22 +130,25 @@ impl Style {
             Error => '^',
             Warning => '^',
             Note => '^',
-            #[cfg(not(feature="colors"))]
-            Custom(_, marker) => *marker,
-            #[cfg(feature="colors")]
             Custom(_, marker, _) => *marker
         }
     }
 
     /// Get the color used to draw the highlight.
-    #[cfg(feature="colors")]
     pub fn color(&self) -> Color {
-        use Style::*;
-        match self {
-            Error => Color::Red,
-            Warning => Color::Yellow,
-            Note => Color::Blue,
-            Custom(_, _, color) => *color
+        #[cfg(not(feature="colors"))]
+        {
+            ()
+        }
+        #[cfg(feature="colors")]
+        {
+            use Style::*;
+            match self {
+                Error => Color::Red,
+                Warning => Color::Yellow,
+                Note => Color::Blue,
+                Custom(_, _, color) => *color
+            }
         }
     }
 }
@@ -203,7 +241,8 @@ pub struct Highlight {
 /// See the [`Highlight`] documentation for more informations.
 pub struct Formatter {
     highlights: Vec<Highlight>,
-    show_line_numbers: bool
+    show_line_numbers: bool,
+    margin_color: Color
 }
 
 /// Highlight with some more information about where to draw the vertical line so it does not
@@ -214,65 +253,22 @@ struct MappedHighlight<'a> {
     label_position: (usize, usize)
 }
 
-/// Character with format information.
+/// Character with style information.
 #[derive(Clone, Copy)]
 struct Char(char, bool, #[cfg(feature="colors")] Option<Color>);
 
 impl Char {
     /// Create a new char.
-    fn new(c: char, style: Style) -> Char {
-        #[cfg(feature="colors")]
-        {
-            Char(c, false, Some(style.color()))
-        }
-        #[cfg(not(feature="colors"))]
-        {
-            Char(c, false)
-        }
+    fn new(c: char, color: Color) -> Char {
+        Char(c, false, Some(color))
     }
 
-    fn label(c: char, style: Style) -> Char {
-        #[cfg(feature="colors")]
-        {
-            Char(c, true, Some(style.color()))
-        }
-        #[cfg(not(feature="colors"))]
-        {
-            Char(c, true)
-        }
-    }
-
-    fn in_margin(c: char) -> Char {
-        #[cfg(feature="colors")]
-        {
-            Char(c, false, Some(Color::Blue))
-        }
-        #[cfg(not(feature="colors"))]
-        {
-            Char(c, false)
-        }
+    fn label(c: char, color: Color) -> Char {
+        Char(c, true, Some(color))
     }
 
     fn space() -> Char {
-        #[cfg(feature="colors")]
-        {
-            Char(' ', false, None)
-        }
-        #[cfg(not(feature="colors"))]
-        {
-            Char(' ', false)
-        }
-    }
-
-    fn pipe() -> Char {
-        #[cfg(feature="colors")]
-        {
-            Char('|', false, Some(Color::Blue))
-        }
-        #[cfg(not(feature="colors"))]
-        {
-            Char('|', false)
-        }
+        Char(' ', false, None)
     }
 
     fn is_label(&self) -> bool {
@@ -282,14 +278,7 @@ impl Char {
 
 impl From<char> for Char {
     fn from(c: char) -> Char {
-        #[cfg(feature="colors")]
-        {
-            Char(c, false, None)
-        }
-        #[cfg(not(feature="colors"))]
-        {
-            Char(c, false)
-        }
+        Char(c, false, None)
     }
 }
 
@@ -297,15 +286,17 @@ impl From<char> for Char {
 struct Line {
     data: Vec<Char>,
     offset: usize,
+    margin_color: Color
 }
 
 impl Line {
-    fn new(margin: usize) -> Line {
+    fn new(margin: usize, margin_color: Color) -> Line {
         let mut data = Vec::new();
         data.resize(margin, Char::space());
         Line {
             data: data,
-            offset: margin
+            offset: margin,
+            margin_color: margin_color
         }
     }
 
@@ -353,19 +344,19 @@ impl Line {
 
     fn draw_label(&mut self, label: &String, i: usize, style: Style) {
         for (k, c) in label.chars().enumerate() {
-            self.set(i+k, Char::label(c, style))
+            self.set(i+k, Char::label(c, style.color()))
         }
     }
 
     fn draw_line_number(&mut self, mut i: usize, margin: usize) {
         let w = margin-3;
 
-        self.set(margin-2, Char::pipe());
+        self.set(margin-2, Char::new('|', self.margin_color));
 
         for k in 0..w {
             let codepoint = 0x30 + i as u32 %10;
             i /= 10;
-            self.set(w-k-1, Char::in_margin(codepoint.try_into().unwrap()));
+            self.set(w-k-1, Char::new(codepoint.try_into().unwrap(), self.margin_color));
         }
     }
 }
@@ -378,14 +369,12 @@ impl fmt::Display for Line {
         for c in &self.data {
             #[cfg(feature="colors")]
             {
-                use terminal_escapes::Sequence::*;
-                use terminal_escapes::Attribute;
                 if c.2 != current_color && c.0 != ' ' {
                     current_color = c.2;
                     if let Some(color) = current_color {
-                        write!(f, "{}", SetAttributes(&[Attribute::Foreground(color), Attribute::Bright]))?;
+                        write!(f, "{}{}", termion::style::Bold, termion::color::Fg(color))?;
                     } else {
-                        write!(f, "{}", SetAttributes(&[Attribute::Reset]))?;
+                        write!(f, "{}", termion::style::Reset)?;
                     }
                 }
             }
@@ -398,15 +387,17 @@ impl fmt::Display for Line {
 struct LineBuffer {
     index: usize,
     margin: usize,
-    lines: Vec<Line>
+    lines: Vec<Line>,
+    margin_color: Color
 }
 
 impl LineBuffer {
-    fn new(index: usize, line: Line, margin: usize) -> LineBuffer {
+    fn new(index: usize, line: Line, margin: usize, margin_color: Color) -> LineBuffer {
         LineBuffer {
             index: index,
             margin: margin,
-            lines: vec![line]
+            lines: vec![line],
+            margin_color: margin_color
         }
     }
 
@@ -445,23 +436,23 @@ impl LineBuffer {
         if index == 1 {
             let line = &mut self.lines[index];
             for k in i..(j+1) {
-                line.set(k, Char::new(style.line(), style));
+                line.set(k, Char::new(style.line(), style.color()));
             }
         } else {
             for l in 1..(index+1) {
                 let line = &mut self.lines[l];
                 if l == 1 {
-                    line.set(i, Char::new(style.marker(), style));
-                    line.set(j, Char::new(style.marker(), style));
+                    line.set(i, Char::new(style.marker(), style.color()));
+                    line.set(j, Char::new(style.marker(), style.color()));
                 } else if l == index {
-                    line.set(i, Char::new('|', style));
-                    line.set(j, Char::new('|', style));
+                    line.set(i, Char::new('|', style.color()));
+                    line.set(j, Char::new('|', style.color()));
                     for k in (i+1)..j {
-                        line.set(k, Char::new('_', style));
+                        line.set(k, Char::new('_', style.color()));
                     }
                 } else {
-                    line.set(i, Char::new('|', style));
-                    line.set(j, Char::new('|', style));
+                    line.set(i, Char::new('|', style.color()));
+                    line.set(j, Char::new('|', style.color()));
                 }
             }
 
@@ -470,7 +461,7 @@ impl LineBuffer {
 
     fn draw_column(&mut self, i: usize, style: Style) {
         for line in self.lines.iter_mut() {
-            line.set(i, Char::new('|', style));
+            line.set(i, Char::new('|', style.color()));
         }
     }
 
@@ -479,13 +470,13 @@ impl LineBuffer {
         for l in 1..(index+1) {
             let line = &mut self.lines[l];
             if l == 1 {
-                line.set(j, Char::new(style.marker(), style));
+                line.set(j, Char::new(style.marker(), style.color()));
             } else {
-                line.set(j, Char::new('|', style));
+                line.set(j, Char::new('|', style.color()));
             }
             if l == index {
                 for k in i..j {
-                    line.set(k, Char::new('_', style));
+                    line.set(k, Char::new('_', style.color()));
                 }
             }
         }
@@ -504,7 +495,7 @@ impl LineBuffer {
                 if l == index {
                     line.draw_label(label, i, style);
                 } else {
-                    line.set(i, Char::new('|', style));
+                    line.set(i, Char::new('|', style.color()));
                 }
             }
         }
@@ -538,7 +529,7 @@ impl LineBuffer {
     }
 
     fn extend(&mut self) {
-        let mut new_line = Line::new(self.margin);
+        let mut new_line = Line::new(self.margin, self.margin_color);
         {
             let last_line = self.lines.last().unwrap();
             for i in 0..self.margin {
@@ -594,10 +585,11 @@ impl Formatter {
     ///
     /// By default line numbers are showing. You can disable them using the
     /// [`hide_line_numbers`](Formatter::hide_line_numbers) method.
-    pub fn new() -> Formatter {
+    pub fn new(margin_color: Color) -> Formatter {
         Formatter {
             highlights: Vec::new(),
-            show_line_numbers: true
+            show_line_numbers: true,
+            margin_color: margin_color
         }
     }
 
@@ -653,7 +645,7 @@ impl Formatter {
 
         let mut lines = Vec::new();
 
-        let mut line_buffer = Line::new(margin);
+        let mut line_buffer = Line::new(margin, self.margin_color);
         let mut line_span: Span = span.start().into();
 
         if self.show_line_numbers {
@@ -670,9 +662,9 @@ impl Formatter {
             line_span.push(c);
 
             if c == '\n' {
-                let mut new_line_buffer = Line::new(margin);
+                let mut new_line_buffer = Line::new(margin, self.margin_color);
                 std::mem::swap(&mut new_line_buffer, &mut line_buffer);
-                lines.push(LineBuffer::new(line_span.start().line, new_line_buffer, margin));
+                lines.push(LineBuffer::new(line_span.start().line, new_line_buffer, margin, self.margin_color));
                 line_span.clear();
                 if self.show_line_numbers {
                     line_buffer.draw_line_number(line_span.start().line+1, line_number_margin);
@@ -683,7 +675,7 @@ impl Formatter {
         }
 
         if !line_buffer.is_empty() {
-            lines.push(LineBuffer::new(line_span.start().line, line_buffer, margin));
+            lines.push(LineBuffer::new(line_span.start().line, line_buffer, margin, self.margin_color));
         }
 
         for (i, line) in lines.iter_mut().enumerate() {

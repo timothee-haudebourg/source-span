@@ -1,5 +1,5 @@
-#[cfg(feature="terminal-escapes")]
-extern crate terminal_escapes;
+#[cfg(feature="termion")]
+extern crate termion;
 
 use std::cmp::{PartialOrd, Ord, Ordering};
 

@@ -13,10 +13,10 @@ license = "MIT/Apache-2.0"
 [features]
 default = ["colors"]
 
-colors = ["terminal-escapes"]
+colors = ["termion"]
 
 [dependencies]
-terminal-escapes = { version = "0.1.1", optional = true }
+termion = { version = "1.5.3", optional = true }
 
 [dev-dependencies]
 utf8-decode = "1.0.0"
