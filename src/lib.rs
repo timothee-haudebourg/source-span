@@ -140,16 +140,16 @@ impl Ord for Span {
 impl Span {
     /// Create a new span from three positions.
     ///
-    /// If the `end` position is before the `start` position then the returned span will be
-    /// `[start, start]`.
-    /// If the `last` position is before `start` or after `end` it will panic.
+    /// If the `end` position or the `last` position is before the `start` position then the
+    /// returned span will be `[start, start]`.
     /// If the `last` position is equal to `end` while the span is not empty, it will panic.
-    pub fn new(start: Position, last: Position, mut end: Position) -> Span {
-        if end < start {
+    pub fn new(start: Position, mut last: Position, mut end: Position) -> Span {
+        if end < start || last < start {
+            last = start;
             end = start;
         }
 
-        if last < start || (last >= end && end != start) {
+        if last >= end && end != start {
             panic!("invalid span ({:?}, {:?}, {:?})", start, last, end);
         }
 
@@ -244,6 +244,19 @@ impl Span {
         }
     }
 
+    /// Computes the intersection of the two spans.
+    ///
+    /// If the two spans do not overlap, then the empty span located at the start of the most
+    /// advanced span (maximum of the start of the two spans) is returned.
+    pub fn inter(&self, other: Span) -> Span {
+        let start = std::cmp::max(self.start, other.start);
+        if other.last < self.last {
+            Span::new(start, other.last, other.end)
+        } else {
+            Span::new(start, other.last, other.end)
+        }
+    }
+
     /// Extend the span to the end of the given span.
     ///
     /// This is the *in-place* version of [`union`](Span::union), except that
@@ -269,6 +282,29 @@ impl Span {
         self.start = self.end;
         self.last = self.end;
     }
+
+    /// Return the span aligned on line boundaries.
+    ///
+    /// This will compute the smallest span including `self` such that
+    ///  * `start` is at the begining of a line (column 0),
+    ///  * `end` is at the end of a line (column [`std::usize::MAX`]),
+    ///  * `last` points to the last character of a line (column `std::usize::MAX - 1`).
+    pub fn aligned(&self) -> Span {
+        Span {
+            start: Position {
+                line: self.start.line,
+                column: 0
+            },
+            last: Position {
+                line: self.end.line,
+                column: std::usize::MAX-1
+            },
+            end: Position {
+                line: self.end.line,
+                column: std::usize::MAX
+            }
+        }
+    }
 }
 
 impl From<Position> for Span {
@@ -283,7 +319,11 @@ impl From<Position> for Span {
 
 impl std::fmt::Display for Span {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "from {:?} to {:?}", self.start, self.end)
+        if self.start == self.last {
+            write!(f, "{}", self.start)
+        } else {
+            write!(f, "from {:?} to {:?}", self.start, self.end)
+        }
     }
 }
 
