@@ -122,12 +122,36 @@ impl Position {
 
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "line {} column {}", self.line+1, self.column+1)
+        if self.line == std::usize::MAX || self.column == std::usize::MAX {
+            if self.line == std::usize::MAX {
+                if self.column == std::usize::MAX {
+                    write!(f, "line [end] column [end]")
+                } else {
+                    write!(f, "line [end] column {}", self.column+1)
+                }
+            } else {
+                write!(f, "line {} column [end]", self.line+1)
+            }
+        } else {
+            write!(f, "line {} column {}", self.line+1, self.column+1)
+        }
     }
 }
 
 impl fmt::Debug for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}:{}", self.line+1, self.column+1)
+        if self.line == std::usize::MAX || self.column == std::usize::MAX {
+            if self.line == std::usize::MAX {
+                if self.column == std::usize::MAX {
+                    write!(f, "[end]:[end]")
+                } else {
+                    write!(f, "[end]:{}", self.column+1)
+                }
+            } else {
+                write!(f, "{}:[end]", self.line+1)
+            }
+        } else {
+            write!(f, "{}:{}", self.line+1, self.column+1)
+        }
     }
 }
