@@ -1,5 +1,11 @@
 # Source Span
 
+<table><tr>
+  <td><a href="https://docs.rs/source-span">Documentation</a></td>
+  <td><a href="https://crates.io/crates/source-span">Crate informations</a></td>
+  <td><a href="https://github.com/timothee-haudebourg/source-span">Github</a></td>
+</tr></table>
+
 This crate provides utilities to locate characters and ranges of characters
 (spans) in a source file. It also provides ways to print fragments of the source
 file with span informations, hints, errors, warning and notes,
