@@ -199,9 +199,10 @@ impl<I: Iterator<Item=Result<char>>> Buffer<I> {
     /// When it reaches the end of the buffer, the buffer will start reading from the source
     /// stream.
 	pub fn iter_from(&self, pos: Position) -> Iter<I> {
+		let start = self.p.borrow().span.start();
 		Iter {
 			buffer: &self,
-			i: self.index_at(std::cmp::max(self.p.borrow().span.start(), pos))
+			i: self.index_at(std::cmp::max(start, pos))
 		}
 	}
 }
