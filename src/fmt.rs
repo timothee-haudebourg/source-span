@@ -440,9 +440,11 @@ impl Line {
         self.set(margin-2, Char::Margin('|', self.margin_color));
 
         for k in 0..w {
-            let codepoint = 0x30 + i as u32 %10;
-            i /= 10;
-            self.set(w-k-1, Char::Margin(codepoint.try_into().unwrap(), self.margin_color));
+            if i > 0 {
+                let codepoint = 0x30 + i as u32 %10;
+                i /= 10;
+                self.set(w-k-1, Char::Margin(codepoint.try_into().unwrap(), self.margin_color));
+            }
         }
     }
 }
