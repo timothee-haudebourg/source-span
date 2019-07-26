@@ -3,7 +3,7 @@
 <table><tr>
   <td><a href="https://docs.rs/source-span">Documentation</a></td>
   <td><a href="https://crates.io/crates/source-span">Crate informations</a></td>
-  <td><a href="https://github.com/timothee-haudebourg/source-span">Github</a></td>
+  <td><a href="https://github.com/timothee-haudebourg/source-span">Repository</a></td>
 </tr></table>
 
 This crate provides utilities to locate characters and ranges of characters

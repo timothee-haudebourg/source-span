@@ -188,21 +188,43 @@ impl<I: Iterator<Item=Result<char>>> Buffer<I> {
 	pub fn iter(&self) -> Iter<I> {
 		Iter {
 			buffer: &self,
-			i: Some(Ok(0))
+			i: Some(Ok(0)),
+			pos: self.p.borrow().span.start(),
+			end: Position::end()
 		}
 	}
 
     /// Returns an iterator through the characters of the buffer from the given position.
     ///
-    /// If the input position precedes the buffer start position, that it will start from the
+    /// If the input position precedes the buffer start position, then it will start from the
     /// buffer start position.
     /// When it reaches the end of the buffer, the buffer will start reading from the source
     /// stream.
 	pub fn iter_from(&self, pos: Position) -> Iter<I> {
 		let start = self.p.borrow().span.start();
+		let pos = std::cmp::max(start, pos);
 		Iter {
 			buffer: &self,
-			i: self.index_at(std::cmp::max(start, pos))
+			i: self.index_at(pos),
+			pos: pos,
+			end: Position::end()
+		}
+	}
+
+	/// Returns an iterator through the characters of the buffer in the given span.
+    ///
+    /// If the input start position precedes the buffer start position, then it will start from the
+    /// buffer start position.
+    /// When it reaches the end of the buffer, the buffer will start reading from the source
+    /// stream.
+	pub fn iter_span(&self, span: Span) -> Iter<I> {
+		let start = self.p.borrow().span.start();
+		let pos = std::cmp::max(start, span.start());
+		Iter {
+			buffer: &self,
+			i: self.index_at(pos),
+			pos: pos,
+			end: span.end()
 		}
 	}
 }
@@ -214,34 +236,58 @@ impl<I: Iterator<Item=Result<char>>> Buffer<I> {
 /// stream until the stream itself return `None`.
 pub struct Iter<'b, I: 'b + Iterator<Item=Result<char>>> {
 	buffer: &'b Buffer<I>,
-    i: Option<Result<usize>>
+    i: Option<Result<usize>>,
+	pos: Position,
+	end: Position
+}
+
+impl<'b, I: 'b + Iterator<Item=Result<char>>> Iter<'b, I> {
+	pub fn into_string(self) -> Result<String> {
+		let mut string = String::new();
+
+		for c in self {
+			match c {
+				Ok(c) => {
+					string.push(c);
+				},
+				Err(e) => return Err(e)
+			}
+		}
+
+		Ok(string)
+	}
 }
 
 impl<'b, I: 'b + Iterator<Item=Result<char>>> Iterator for Iter<'b, I> {
 	type Item = Result<char>;
 
 	fn next(&mut self) -> Option<Result<char>> {
-		match &mut self.i {
-			Some(Ok(ref mut i)) => {
-				match self.buffer.get(*i) {
-					Some(Ok(c)) => {
-						*i = *i+1;
-						Some(Ok(c))
-					},
-		            Some(Err(e)) => Some(Err(e)),
-					None => None
-				}
-			},
-			None => None,
-			ref mut i => {
-				let mut new_i = None;
-				std::mem::swap(&mut new_i, i);
-				if let Some(Err(e)) = new_i {
-					Some(Err(e))
-				} else {
-					unreachable!()
-				}
-			},
+		if self.pos >= self.end {
+			None
+		} else {
+			match &mut self.i {
+				Some(Ok(ref mut i)) => {
+					match self.buffer.get(*i) {
+						Some(Ok(c)) => {
+							self.pos = self.pos.next(c);
+							*i = *i+1;
+							Some(Ok(c))
+						},
+			            Some(Err(e)) => Some(Err(e)),
+						None => None
+					}
+				},
+				None => None,
+				ref mut i => {
+					let mut new_i = None;
+					std::mem::swap(&mut new_i, i);
+					if let Some(Err(e)) = new_i {
+						Some(Err(e))
+					} else {
+						unreachable!()
+					}
+				},
+			}
 		}
 	}
 }

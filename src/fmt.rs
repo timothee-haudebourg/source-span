@@ -262,7 +262,13 @@ pub enum Char {
     SpanUnderline(char, Color),
     SpanMarker(char, Color),
     SpanLine(Color),
-    SpanColumn(Color)
+    SpanColumn(ColumnStyle, Color)
+}
+
+#[derive(Clone, Copy)]
+pub enum ColumnStyle {
+    Normal,
+    Abbreviated
 }
 
 impl Char {
@@ -282,7 +288,8 @@ impl Char {
             Char::SpanUnderline(c, _) => c,
             Char::SpanMarker(c, _) => c,
             Char::SpanLine(_) => '_',
-            Char::SpanColumn(_) => '|'
+            Char::SpanColumn(ColumnStyle::Normal, _) => '|',
+            Char::SpanColumn(ColumnStyle::Abbreviated, _) => '/'
         }
     }
 
@@ -294,7 +301,7 @@ impl Char {
             Char::SpanUnderline(_, color) => Char::SpanUnderline(c, *color),
             Char::SpanMarker(_, color) => Char::SpanMarker(c, *color),
             Char::SpanLine(color) => Char::SpanLine(*color),
-            Char::SpanColumn(color) => Char::SpanColumn(*color)
+            Char::SpanColumn(style, color) => Char::SpanColumn(*style, *color)
         }
     }
 
@@ -306,7 +313,7 @@ impl Char {
             Char::SpanUnderline(_, color) => Some(*color),
             Char::SpanMarker(_, color) => Some(*color),
             Char::SpanLine(color) => Some(*color),
-            Char::SpanColumn(color) => Some(*color)
+            Char::SpanColumn(_, color) => Some(*color)
         }
     }
 
@@ -333,7 +340,7 @@ impl Char {
 
     fn is_span_column(&self) -> bool {
         match self {
-            Char::SpanColumn(_) => true,
+            Char::SpanColumn(_, _) => true,
             _ => false
         }
     }
@@ -385,6 +392,16 @@ impl Line {
     fn is_free(&self, i: usize, j: usize) -> bool {
         for k in i..j {
             if !self.get(k).is_free() {
+                return false
+            }
+        }
+
+        true
+    }
+
+    fn is_first_char(&self, i: usize) -> bool {
+        for k in self.offset..i {
+            if let Char::Text(_) = self.get(k) {
                 return false
             }
         }
@@ -474,11 +491,11 @@ impl LineBuffer {
         if mh.h.span.line_count() > 1 {
             let column = self.margin - mh.column_offset -1;
             if mh.h.span.start().line == self.index {
-                self.draw_boundary(column+1, self.margin + mh.h.span.start().column, mh.h.style);
+                self.draw_boundary(column+1, self.margin + mh.h.span.start().column, mh.h.style, true);
                 None
             } else if mh.h.span.end().line == self.index {
                 let j = self.margin + mh.h.span.last().column;
-                self.draw_boundary(column+1, j, mh.h.style);
+                self.draw_boundary(column+1, j, mh.h.style, false);
                 self.draw_column(column, mh.h.style);
                 Some(j)
             } else if mh.h.span.start().line < self.index && mh.h.span.end().line > self.index {
@@ -514,14 +531,14 @@ impl LineBuffer {
                     line.set(i, Char::SpanMarker(style.marker(), style.color()));
                     line.set(j, Char::SpanMarker(style.marker(), style.color()));
                 } else if l == index {
-                    line.set(i, Char::SpanColumn(style.color()));
-                    line.set(j, Char::SpanColumn(style.color()));
+                    line.set(i, Char::SpanColumn(ColumnStyle::Normal, style.color()));
+                    line.set(j, Char::SpanColumn(ColumnStyle::Normal, style.color()));
                     for k in (i+1)..j {
                         line.set(k, Char::SpanLine(style.color()));
                     }
                 } else {
-                    line.set(i, Char::SpanColumn(style.color()));
-                    line.set(j, Char::SpanColumn(style.color()));
+                    line.set(i, Char::SpanColumn(ColumnStyle::Normal, style.color()));
+                    line.set(j, Char::SpanColumn(ColumnStyle::Normal, style.color()));
                 }
             }
 
@@ -530,22 +547,28 @@ impl LineBuffer {
 
     fn draw_column(&mut self, i: usize, style: Style) {
         for line in self.lines.iter_mut() {
-            line.set(i, Char::SpanColumn(style.color()));
+            line.set(i, Char::SpanColumn(ColumnStyle::Normal, style.color()));
         }
     }
 
-    fn draw_boundary(&mut self, i: usize, j: usize, style: Style) {
-        let index = self.find_free_line(i, j+1, false);
-        for l in 1..(index+1) {
-            let line = &mut self.lines[l];
-            if l == 1 {
-                line.set(j, Char::SpanMarker(style.marker(), style.color()));
-            } else {
-                line.set(j, Char::SpanColumn(style.color()));
-            }
-            if l == index {
-                for k in i..j {
-                    line.set(k, Char::SpanLine(style.color()));
+    fn draw_boundary(&mut self, i: usize, j: usize, style: Style, abbreviate: bool) {
+        if abbreviate && self.lines[0].is_first_char(j) {
+            self.draw_column(i-1, style);
+            let first_line = &mut self.lines[0];
+            first_line.set(i-1, Char::SpanColumn(ColumnStyle::Abbreviated, style.color()));
+        } else {
+            let index = self.find_free_line(i, j+1, false);
+            for l in 1..(index+1) {
+                let line = &mut self.lines[l];
+                if l == 1 {
+                    line.set(j, Char::SpanMarker(style.marker(), style.color()));
+                } else {
+                    line.set(j, Char::SpanColumn(ColumnStyle::Normal, style.color()));
+                }
+                if l == index {
+                    for k in i..j {
+                        line.set(k, Char::SpanLine(style.color()));
+                    }
                 }
             }
         }
@@ -564,7 +587,7 @@ impl LineBuffer {
                 if l == index {
                     line.draw_label(label, i, style);
                 } else {
-                    line.set(i, Char::SpanColumn(style.color()));
+                    line.set(i, Char::SpanColumn(ColumnStyle::Normal, style.color()));
                 }
             }
         }
@@ -611,7 +634,7 @@ impl LineBuffer {
                 let top_right = last_line.get(i+1);
 
                 if top_right.is_span_line() && top.is_free() {
-                    new_line.set(i, Char::SpanColumn(top_right.color().unwrap()));
+                    new_line.set(i, Char::SpanColumn(ColumnStyle::Normal, top_right.color().unwrap()));
                 }
                 if (!top_right.is_span_line() && top.is_span_column()) || top.is_margin_column() {
                     new_line.set(i, top);

@@ -51,6 +51,16 @@ impl Position {
         }
     }
 
+    /// Return the maximum position.
+    ///
+    /// Defined as `(std::usize::MAX, std::usize::MAX)`.
+    pub fn end() -> Position {
+        Position {
+            line: std::usize::MAX,
+            column: std::usize::MAX
+        }
+    }
+
     /// Move to the next column.
     pub fn next_column(&self) -> Position {
         Position {
