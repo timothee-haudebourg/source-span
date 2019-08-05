@@ -338,6 +338,13 @@ impl Char {
         }
     }
 
+    fn is_inline_span_line(&self) -> bool {
+        match self {
+            Char::SpanUnderline(_, _) => true,
+            _ => false
+        }
+    }
+
     fn is_span_column(&self) -> bool {
         match self {
             Char::SpanColumn(_, _) => true,
@@ -613,7 +620,7 @@ impl LineBuffer {
                     let last_line = &self.lines[index-1];
                     for k in i..(j+1) {
                         let top = last_line.get(k);
-                        if top.is_span_column() || top.is_label() {
+                        if top.is_span_line() || top.is_inline_span_line() || top.is_span_column() || top.is_label() {
                             index += 1;
                             continue 'next_line;
                         }
