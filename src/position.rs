@@ -35,7 +35,13 @@ impl Position {
 
     /// Return the maximum position.
     ///
-    /// Defined as `(std::usize::MAX, std::usize::MAX)`.
+    /// # Example
+    ///
+    /// ```
+    /// use source_span::Position;
+    ///
+    /// assert_eq!(Position::end(), Position::new(usize::max_value(), usize::max_value()));
+    /// ```
     #[must_use]
     pub const fn end() -> Self {
         Self {
