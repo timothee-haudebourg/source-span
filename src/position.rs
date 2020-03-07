@@ -1,5 +1,5 @@
+use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
-use std::cmp::{PartialOrd, Ord, Ordering};
 
 /// Position in a source file.
 ///
@@ -22,7 +22,7 @@ pub struct Position {
     pub line: usize,
 
     /// Column number, starting at `0`.
-    pub column: usize
+    pub column: usize,
 }
 
 impl PartialOrd for Position {
@@ -35,7 +35,7 @@ impl Ord for Position {
     fn cmp(&self, other: &Position) -> Ordering {
         match self.line.cmp(&other.line) {
             Ordering::Equal => self.column.cmp(&other.column),
-            ord => ord
+            ord => ord,
         }
     }
 }
@@ -47,7 +47,7 @@ impl Position {
     pub fn new(line: usize, column: usize) -> Position {
         Position {
             line: line,
-            column: column
+            column: column,
         }
     }
 
@@ -57,7 +57,7 @@ impl Position {
     pub fn end() -> Position {
         Position {
             line: std::usize::MAX,
-            column: std::usize::MAX
+            column: std::usize::MAX,
         }
     }
 
@@ -65,7 +65,7 @@ impl Position {
     pub fn next_column(&self) -> Position {
         Position {
             line: self.line,
-            column: self.column+1
+            column: self.column + 1,
         }
     }
 
@@ -73,15 +73,15 @@ impl Position {
     pub fn reset_column(&self) -> Position {
         Position {
             line: self.line,
-            column: 0
+            column: 0,
         }
     }
 
     /// Move to the next line, and reset the column position.
     pub fn next_line(&self) -> Position {
         Position {
-            line: self.line+1,
-            column: 0
+            line: self.line + 1,
+            column: 0,
         }
     }
 
@@ -122,10 +122,10 @@ impl Position {
             '\r' => self.reset_column(),
             '\t' => Position {
                 line: self.line,
-                column: (self.column/8)*8 + 8
+                column: (self.column / 8) * 8 + 8,
             },
             c if c.is_control() => *self,
-            _ => self.next_column()
+            _ => self.next_column(),
         }
     }
 }
@@ -137,13 +137,13 @@ impl fmt::Display for Position {
                 if self.column == std::usize::MAX {
                     write!(f, "line [end] column [end]")
                 } else {
-                    write!(f, "line [end] column {}", self.column+1)
+                    write!(f, "line [end] column {}", self.column + 1)
                 }
             } else {
-                write!(f, "line {} column [end]", self.line+1)
+                write!(f, "line {} column [end]", self.line + 1)
             }
         } else {
-            write!(f, "line {} column {}", self.line+1, self.column+1)
+            write!(f, "line {} column {}", self.line + 1, self.column + 1)
         }
     }
 }
@@ -155,13 +155,13 @@ impl fmt::Debug for Position {
                 if self.column == std::usize::MAX {
                     write!(f, "[end]:[end]")
                 } else {
-                    write!(f, "[end]:{}", self.column+1)
+                    write!(f, "[end]:{}", self.column + 1)
                 }
             } else {
-                write!(f, "{}:[end]", self.line+1)
+                write!(f, "{}:[end]", self.line + 1)
             }
         } else {
-            write!(f, "{}:{}", self.line+1, self.column+1)
+            write!(f, "{}:{}", self.line + 1, self.column + 1)
         }
     }
 }

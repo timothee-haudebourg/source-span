@@ -1,7 +1,7 @@
-#[cfg(feature="termion")]
+#[cfg(feature = "termion")]
 extern crate termion;
 
-use std::cmp::{PartialOrd, Ord, Ordering};
+use std::cmp::{Ord, Ordering, PartialOrd};
 
 mod position;
 
@@ -122,7 +122,7 @@ pub struct Span {
     /// The position of the character directly following the span.
     ///
     /// It is not included in the span.
-    end: Position
+    end: Position,
 }
 
 impl PartialOrd for Span {
@@ -156,7 +156,7 @@ impl Span {
         Span {
             start: start,
             last: last,
-            end: end
+            end: end,
         }
     }
 
@@ -184,8 +184,8 @@ impl Span {
 
     /// Checks if two span overlaps.
     pub fn overlaps(&self, other: &Span) -> bool {
-        (self.start <= other.start && self.end > other.start) ||
-        (other.start <= self.start && other.end > self.start)
+        (self.start <= other.start && self.end > other.start)
+            || (other.start <= self.start && other.end > self.start)
     }
 
     /// The number of lines covered by the span.
@@ -233,13 +233,13 @@ impl Span {
             Span {
                 start: std::cmp::min(self.start, other.start),
                 last: other.last,
-                end: other.end
+                end: other.end,
             }
         } else {
             Span {
                 start: std::cmp::min(self.start, other.start),
                 last: self.last,
-                end: self.end
+                end: self.end,
             }
         }
     }
@@ -273,7 +273,7 @@ impl Span {
         Span {
             start: self.end,
             last: self.end,
-            end: self.end
+            end: self.end,
         }
     }
 
@@ -293,16 +293,16 @@ impl Span {
         Span {
             start: Position {
                 line: self.start.line,
-                column: 0
+                column: 0,
             },
             last: Position {
                 line: self.end.line,
-                column: std::usize::MAX-1
+                column: std::usize::MAX - 1,
             },
             end: Position {
                 line: self.end.line,
-                column: std::usize::MAX
-            }
+                column: std::usize::MAX,
+            },
         }
     }
 }
@@ -312,7 +312,7 @@ impl From<Position> for Span {
         Span {
             start: pos,
             last: pos,
-            end: pos
+            end: pos,
         }
     }
 }

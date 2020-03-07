@@ -1,9 +1,9 @@
+use std::convert::TryInto;
 use std::fmt;
 use std::fmt::Write;
 use std::io::Result;
-use std::convert::TryInto;
 
-#[cfg(feature="colors")]
+#[cfg(feature = "colors")]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Color {
     Red,
@@ -11,10 +11,10 @@ pub enum Color {
     Blue,
     Magenta,
     Yellow,
-    Cyan
+    Cyan,
 }
 
-#[cfg(feature="colors")]
+#[cfg(feature = "colors")]
 impl termion::color::Color for Color {
     fn write_fg(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Color::*;
@@ -24,7 +24,7 @@ impl termion::color::Color for Color {
             Blue => termion::color::LightBlue.write_fg(f),
             Magenta => termion::color::LightMagenta.write_fg(f),
             Yellow => termion::color::LightYellow.write_fg(f),
-            Cyan => termion::color::LightCyan.write_fg(f)
+            Cyan => termion::color::LightCyan.write_fg(f),
         }
     }
 
@@ -36,12 +36,12 @@ impl termion::color::Color for Color {
             Blue => termion::color::LightBlue.write_bg(f),
             Magenta => termion::color::LightMagenta.write_bg(f),
             Yellow => termion::color::LightYellow.write_bg(f),
-            Cyan => termion::color::LightCyan.write_bg(f)
+            Cyan => termion::color::LightCyan.write_bg(f),
         }
     }
 }
 
-#[cfg(not(feature="colors"))]
+#[cfg(not(feature = "colors"))]
 pub type Color = ();
 
 use crate::Span;
@@ -88,7 +88,7 @@ pub enum Style {
     ///
     /// Specifies the line character, the boundary marker and the color (if the `colors` feature
     /// is enabled) used to render the highlight.
-    Custom(char, char, Color)
+    Custom(char, char, Color),
 }
 
 impl Style {
@@ -97,7 +97,7 @@ impl Style {
     /// The `line` character is user to draw the line under the span elements.
     /// The `marker` character is used to point to the first and last elements of the span when
     /// relevant.
-    #[cfg(not(feature="colors"))]
+    #[cfg(not(feature = "colors"))]
     pub const fn new(line: char, marker: char) -> Style {
         Style::Custom(line, marker, ())
     }
@@ -107,7 +107,7 @@ impl Style {
     /// The `line` character is user to draw the line under the span elements.
     /// The `marker` character is used to point to the first and last elements of the span when
     /// relevant.
-    #[cfg(feature="colors")]
+    #[cfg(feature = "colors")]
     pub const fn new(line: char, marker: char, color: Color) -> Style {
         Style::Custom(line, marker, color)
     }
@@ -119,7 +119,7 @@ impl Style {
             Error => '^',
             Warning => '^',
             Note => '_',
-            Custom(line, _, _) => *line
+            Custom(line, _, _) => *line,
         }
     }
 
@@ -130,24 +130,24 @@ impl Style {
             Error => '^',
             Warning => '^',
             Note => '^',
-            Custom(_, marker, _) => *marker
+            Custom(_, marker, _) => *marker,
         }
     }
 
     /// Get the color used to draw the highlight.
     pub fn color(&self) -> Color {
-        #[cfg(not(feature="colors"))]
+        #[cfg(not(feature = "colors"))]
         {
             ()
         }
-        #[cfg(feature="colors")]
+        #[cfg(feature = "colors")]
         {
             use Style::*;
             match self {
                 Error => Color::Red,
                 Warning => Color::Yellow,
                 Note => Color::Blue,
-                Custom(_, _, color) => *color
+                Custom(_, _, color) => *color,
             }
         }
     }
@@ -220,7 +220,7 @@ impl Style {
 pub struct Highlight {
     span: Span,
     label: Option<String>,
-    style: Style
+    style: Style,
 }
 
 /// Text formatter with span highlights.
@@ -242,7 +242,7 @@ pub struct Highlight {
 pub struct Formatter {
     highlights: Vec<Highlight>,
     show_line_numbers: bool,
-    margin_color: Color
+    margin_color: Color,
 }
 
 /// Highlight with some more information about where to draw the vertical line so it does not
@@ -250,7 +250,7 @@ pub struct Formatter {
 struct MappedHighlight<'a> {
     h: &'a Highlight,
     column_offset: usize,
-    label_position: (usize, usize)
+    label_position: (usize, usize),
 }
 
 /// Character with style information.
@@ -262,13 +262,13 @@ pub enum Char {
     SpanUnderline(char, Color),
     SpanMarker(char, Color),
     SpanLine(Color),
-    SpanColumn(ColumnStyle, Color)
+    SpanColumn(ColumnStyle, Color),
 }
 
 #[derive(Clone, Copy)]
 pub enum ColumnStyle {
     Normal,
-    Abbreviated
+    Abbreviated,
 }
 
 impl Char {
@@ -289,7 +289,7 @@ impl Char {
             Char::SpanMarker(c, _) => c,
             Char::SpanLine(_) => '_',
             Char::SpanColumn(ColumnStyle::Normal, _) => '|',
-            Char::SpanColumn(ColumnStyle::Abbreviated, _) => '/'
+            Char::SpanColumn(ColumnStyle::Abbreviated, _) => '/',
         }
     }
 
@@ -301,7 +301,7 @@ impl Char {
             Char::SpanUnderline(_, color) => Char::SpanUnderline(c, *color),
             Char::SpanMarker(_, color) => Char::SpanMarker(c, *color),
             Char::SpanLine(color) => Char::SpanLine(*color),
-            Char::SpanColumn(style, color) => Char::SpanColumn(*style, *color)
+            Char::SpanColumn(style, color) => Char::SpanColumn(*style, *color),
         }
     }
 
@@ -313,42 +313,42 @@ impl Char {
             Char::SpanUnderline(_, color) => Some(*color),
             Char::SpanMarker(_, color) => Some(*color),
             Char::SpanLine(color) => Some(*color),
-            Char::SpanColumn(_, color) => Some(*color)
+            Char::SpanColumn(_, color) => Some(*color),
         }
     }
 
     fn is_label(&self) -> bool {
         match self {
             Char::Label(_, _) => true,
-            _ => false
+            _ => false,
         }
     }
 
     fn is_free(&self) -> bool {
         match self {
             Char::Text(' ') => true,
-            _ => false
+            _ => false,
         }
     }
 
     fn is_span_line(&self) -> bool {
         match self {
             Char::SpanLine(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     fn is_span_column(&self) -> bool {
         match self {
             Char::SpanColumn(_, _) => true,
-            _ => false
+            _ => false,
         }
     }
 
     fn is_margin_column(&self) -> bool {
         match self {
             Char::Margin('|', _) => true,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -363,7 +363,7 @@ impl From<char> for Char {
 struct Line {
     data: Vec<Char>,
     offset: usize,
-    margin_color: Color
+    margin_color: Color,
 }
 
 impl Line {
@@ -373,7 +373,7 @@ impl Line {
         Line {
             data: data,
             offset: margin,
-            margin_color: margin_color
+            margin_color: margin_color,
         }
     }
 
@@ -392,7 +392,7 @@ impl Line {
     fn is_free(&self, i: usize, j: usize) -> bool {
         for k in i..j {
             if !self.get(k).is_free() {
-                return false
+                return false;
             }
         }
 
@@ -402,7 +402,7 @@ impl Line {
     fn is_first_char(&self, i: usize) -> bool {
         for k in self.offset..i {
             if let Char::Text(_) = self.get(k) {
-                return false
+                return false;
             }
         }
 
@@ -412,7 +412,7 @@ impl Line {
     fn push(&mut self, c: Char) {
         if c.unwrap() == '\t' {
             let len = self.data.len() - self.offset;
-            let tab_len = 8 - len%8; // tab length is 8.
+            let tab_len = 8 - len % 8; // tab length is 8.
             self.data.resize(self.offset + len + tab_len, c.with(' '));
         } else {
             self.data.push(c);
@@ -421,7 +421,7 @@ impl Line {
 
     fn set(&mut self, i: usize, c: Char) {
         if self.data.len() <= i {
-            self.data.resize(i+1, Char::space());
+            self.data.resize(i + 1, Char::space());
         }
         if !self.data[i].is_label() {
             self.data[i] = c;
@@ -430,20 +430,23 @@ impl Line {
 
     fn draw_label(&mut self, label: &String, i: usize, style: Style) {
         for (k, c) in label.chars().enumerate() {
-            self.set(i+k, Char::label(c, style.color()))
+            self.set(i + k, Char::label(c, style.color()))
         }
     }
 
     fn draw_line_number(&mut self, mut i: usize, margin: usize) {
-        let w = margin-3;
+        let w = margin - 3;
 
-        self.set(margin-2, Char::Margin('|', self.margin_color));
+        self.set(margin - 2, Char::Margin('|', self.margin_color));
 
         for k in 0..w {
             if i > 0 {
-                let codepoint = 0x30 + i as u32 %10;
+                let codepoint = 0x30 + i as u32 % 10;
                 i /= 10;
-                self.set(w-k-1, Char::Margin(codepoint.try_into().unwrap(), self.margin_color));
+                self.set(
+                    w - k - 1,
+                    Char::Margin(codepoint.try_into().unwrap(), self.margin_color),
+                );
             }
         }
     }
@@ -451,11 +454,11 @@ impl Line {
 
 impl fmt::Display for Line {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        #[cfg(feature="colors")]
+        #[cfg(feature = "colors")]
         let mut current_color = None;
 
         for c in &self.data {
-            #[cfg(feature="colors")]
+            #[cfg(feature = "colors")]
             {
                 if c.color() != current_color && !c.is_free() {
                     current_color = c.color();
@@ -476,7 +479,7 @@ struct LineBuffer {
     index: usize,
     margin: usize,
     lines: Vec<Line>,
-    margin_color: Color
+    margin_color: Color,
 }
 
 impl LineBuffer {
@@ -485,19 +488,24 @@ impl LineBuffer {
             index: index,
             margin: margin,
             lines: vec![line],
-            margin_color: margin_color
+            margin_color: margin_color,
         }
     }
 
     fn draw(&mut self, mh: &MappedHighlight) -> Option<usize> {
         if mh.h.span.line_count() > 1 {
-            let column = self.margin - mh.column_offset -1;
+            let column = self.margin - mh.column_offset - 1;
             if mh.h.span.start().line == self.index {
-                self.draw_boundary(column+1, self.margin + mh.h.span.start().column, mh.h.style, true);
+                self.draw_boundary(
+                    column + 1,
+                    self.margin + mh.h.span.start().column,
+                    mh.h.style,
+                    true,
+                );
                 None
             } else if mh.h.span.end().line == self.index {
                 let j = self.margin + mh.h.span.last().column;
-                self.draw_boundary(column+1, j, mh.h.style, false);
+                self.draw_boundary(column + 1, j, mh.h.style, false);
                 self.draw_column(column, mh.h.style);
                 Some(j)
             } else if mh.h.span.start().line < self.index && mh.h.span.end().line > self.index {
@@ -519,15 +527,15 @@ impl LineBuffer {
     }
 
     fn draw_inline_span(&mut self, i: usize, j: usize, style: Style) {
-        let index = self.find_free_line(i, j+1, false);
+        let index = self.find_free_line(i, j + 1, false);
 
         if index == 1 {
             let line = &mut self.lines[index];
-            for k in i..(j+1) {
+            for k in i..(j + 1) {
                 line.set(k, Char::SpanUnderline(style.line(), style.color()));
             }
         } else {
-            for l in 1..(index+1) {
+            for l in 1..(index + 1) {
                 let line = &mut self.lines[l];
                 if l == 1 {
                     line.set(i, Char::SpanMarker(style.marker(), style.color()));
@@ -535,7 +543,7 @@ impl LineBuffer {
                 } else if l == index {
                     line.set(i, Char::SpanColumn(ColumnStyle::Normal, style.color()));
                     line.set(j, Char::SpanColumn(ColumnStyle::Normal, style.color()));
-                    for k in (i+1)..j {
+                    for k in (i + 1)..j {
                         line.set(k, Char::SpanLine(style.color()));
                     }
                 } else {
@@ -543,7 +551,6 @@ impl LineBuffer {
                     line.set(j, Char::SpanColumn(ColumnStyle::Normal, style.color()));
                 }
             }
-
         }
     }
 
@@ -555,12 +562,15 @@ impl LineBuffer {
 
     fn draw_boundary(&mut self, i: usize, j: usize, style: Style, abbreviate: bool) {
         if abbreviate && self.lines[0].is_first_char(j) {
-            self.draw_column(i-1, style);
+            self.draw_column(i - 1, style);
             let first_line = &mut self.lines[0];
-            first_line.set(i-1, Char::SpanColumn(ColumnStyle::Abbreviated, style.color()));
+            first_line.set(
+                i - 1,
+                Char::SpanColumn(ColumnStyle::Abbreviated, style.color()),
+            );
         } else {
-            let index = self.find_free_line(i, j+1, false);
-            for l in 1..(index+1) {
+            let index = self.find_free_line(i, j + 1, false);
+            for l in 1..(index + 1) {
                 let line = &mut self.lines[l];
                 if l == 1 {
                     line.set(j, Char::SpanMarker(style.marker(), style.color()));
@@ -578,13 +588,13 @@ impl LineBuffer {
 
     /// Draw label at the given column.
     fn draw_label(&mut self, label: &String, i: usize, style: Style) {
-        let j = i+label.len()+1;
+        let j = i + label.len() + 1;
 
-        if self.lines[1].is_free(i+1, j+2) {
-            self.lines[1].draw_label(label, i+2, style);
+        if self.lines[1].is_free(i + 1, j + 2) {
+            self.lines[1].draw_label(label, i + 2, style);
         } else {
             let index = self.find_free_line(i, j, true);
-            for l in 2..(index+1) {
+            for l in 2..(index + 1) {
                 let line = &mut self.lines[l];
                 if l == index {
                     line.draw_label(label, i, style);
@@ -605,13 +615,13 @@ impl LineBuffer {
             }
 
             if index > 100 {
-                return index
+                return index;
             }
 
             if self.lines[index].is_free(i, j) {
                 if label && index > 1 {
-                    let last_line = &self.lines[index-1];
-                    for k in i..(j+1) {
+                    let last_line = &self.lines[index - 1];
+                    for k in i..(j + 1) {
                         let top = last_line.get(k);
                         if top.is_span_column() || top.is_label() {
                             index += 1;
@@ -620,7 +630,7 @@ impl LineBuffer {
                     }
                 }
 
-                return index
+                return index;
             }
 
             index += 1;
@@ -633,10 +643,13 @@ impl LineBuffer {
             let last_line = self.lines.last().unwrap();
             for i in 0..self.margin {
                 let top = last_line.get(i);
-                let top_right = last_line.get(i+1);
+                let top_right = last_line.get(i + 1);
 
                 if top_right.is_span_line() && top.is_free() {
-                    new_line.set(i, Char::SpanColumn(ColumnStyle::Normal, top_right.color().unwrap()));
+                    new_line.set(
+                        i,
+                        Char::SpanColumn(ColumnStyle::Normal, top_right.color().unwrap()),
+                    );
                 }
                 if (!top_right.is_span_line() && top.is_span_column()) || top.is_margin_column() {
                     new_line.set(i, top);
@@ -667,7 +680,7 @@ impl Highlight {
         for h in others.iter() {
             if h.h.span.overlaps(&self.span) {
                 if column_offset > 0 && h.h.span.line_count() > 1 {
-                    column_offset = std::cmp::max(column_offset, h.column_offset+2);
+                    column_offset = std::cmp::max(column_offset, h.column_offset + 2);
                 }
             }
         }
@@ -675,7 +688,7 @@ impl Highlight {
         MappedHighlight {
             h: self,
             column_offset: column_offset,
-            label_position: (0, 0)
+            label_position: (0, 0),
         }
     }
 }
@@ -689,7 +702,7 @@ impl Formatter {
         Formatter {
             highlights: Vec::new(),
             show_line_numbers: true,
-            margin_color: Color::Blue
+            margin_color: Color::Blue,
         }
     }
 
@@ -712,7 +725,7 @@ impl Formatter {
         self.highlights.push(Highlight {
             span: span,
             label: label,
-            style: style
+            style: style,
         });
         self.highlights.sort_by(|a, b| a.span.cmp(&b.span));
     }
@@ -721,9 +734,13 @@ impl Formatter {
     ///
     /// Create a [`String`] containing the content of the input iterator given span, with the
     /// previously added highlights.
-    pub fn get<I: Iterator<Item=Result<char>>>(&self, input: I, span: Span) -> std::io::Result<String> {
+    pub fn get<I: Iterator<Item = Result<char>>>(
+        &self,
+        input: I,
+        span: Span,
+    ) -> std::io::Result<String> {
         let line_number_margin = if self.show_line_numbers {
-            (((span.last().line+1) as f32).log10() as usize) + 4
+            (((span.last().line + 1) as f32).log10() as usize) + 4
         } else {
             0
         };
@@ -749,14 +766,14 @@ impl Formatter {
         let mut line_span: Span = span.start().into();
 
         if self.show_line_numbers {
-            line_buffer.draw_line_number(line_span.start().line+1, line_number_margin);
+            line_buffer.draw_line_number(line_span.start().line + 1, line_number_margin);
         }
 
         for c in input {
             let c = c?;
 
             if line_span.end() >= span.end() {
-                break
+                break;
             }
 
             line_span.push(c);
@@ -764,22 +781,32 @@ impl Formatter {
             if c == '\n' {
                 let mut new_line_buffer = Line::new(margin, self.margin_color);
                 std::mem::swap(&mut new_line_buffer, &mut line_buffer);
-                lines.push(LineBuffer::new(line_span.start().line, new_line_buffer, margin, self.margin_color));
+                lines.push(LineBuffer::new(
+                    line_span.start().line,
+                    new_line_buffer,
+                    margin,
+                    self.margin_color,
+                ));
                 line_span.clear();
                 if self.show_line_numbers {
-                    line_buffer.draw_line_number(line_span.start().line+1, line_number_margin);
+                    line_buffer.draw_line_number(line_span.start().line + 1, line_number_margin);
                 }
             } else {
                 line_buffer.push(Char::from(c));
             }
 
             if line_span.end() >= span.last() {
-                break
+                break;
             }
         }
 
         if !line_buffer.is_empty() {
-            lines.push(LineBuffer::new(line_span.start().line, line_buffer, margin, self.margin_color));
+            lines.push(LineBuffer::new(
+                line_span.start().line,
+                line_buffer,
+                margin,
+                self.margin_color,
+            ));
         }
 
         for (i, line) in lines.iter_mut().enumerate() {

@@ -1,15 +1,18 @@
-extern crate utf8_decode;
 extern crate source_span;
+extern crate utf8_decode;
 
+use source_span::{
+    fmt::{Color, Formatter, Style},
+    Position, Span,
+};
 use std::fs::File;
 use std::io::Read;
 use utf8_decode::UnsafeDecoder;
-use source_span::{Position, Span, fmt::{Formatter, Style, Color}};
 
 #[derive(Clone, Default)]
 pub struct Token {
     string: String,
-    span: Span
+    span: Span,
 }
 
 #[derive(PartialEq)]
@@ -17,7 +20,7 @@ pub enum Kind {
     Space,
     Separator,
     Alphabetic,
-    Numeric
+    Numeric,
 }
 
 fn main() -> std::io::Result<()> {
@@ -74,7 +77,7 @@ fn main() -> std::io::Result<()> {
             '{' => opened.push((current.span.start(), '}')),
             '"' if opened.is_empty() || opened.last().unwrap().1 != '"' => {
                 opened.push((current.span.start(), '"'))
-            },
+            }
             ')' | ']' | '}' | '"' => {
                 if let Some((start, expected)) = opened.pop() {
                     if c == expected {
@@ -84,7 +87,7 @@ fn main() -> std::io::Result<()> {
                             ')' => ("this is a pair of parenthesis", Style::Note),
                             ']' => ("this is a pair of brackets", Style::Warning),
                             '}' => ("this is a pair of braces", Style::Warning),
-                            _ => ("this is a string", string_style)
+                            _ => ("this is a string", string_style),
                         };
                         fmt.add(span, Some(label.to_string()), style);
                     } else {
@@ -93,8 +96,8 @@ fn main() -> std::io::Result<()> {
                 } else {
                     // ...
                 }
-            },
-            _ => ()
+            }
+            _ => (),
         }
     }
 
