@@ -1,6 +1,3 @@
-extern crate source_span;
-extern crate utf8_decode;
-
 use source_span::Span;
 use std::fs::File;
 use std::io::Read;

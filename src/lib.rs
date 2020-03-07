@@ -87,10 +87,23 @@ pub use position::Position;
 /// does the same but *in place*.
 ///
 /// ## Example
+///
 /// Here is a basic example computing the span of every word/token in a `char` stream.
+///
 /// ```rust
-/// for c in chars {
-///     let c = c?; // report eventual I/O errors.
+/// use source_span::Span;
+///
+/// #[derive(Clone, Default)]
+/// pub struct Token {
+///     string: String,
+///     span: Span,
+/// }
+///
+/// let string = "This is an example String.".to_string();
+/// let mut tokens = Vec::new();
+/// let mut current = Token::default();
+///
+/// for c in string.chars() {
 ///     if c.is_whitespace() {
 ///         // save the current token.
 ///         if !current.string.is_empty() {
@@ -110,7 +123,6 @@ pub use position::Position;
 ///     tokens.push(current);
 /// }
 /// ```
-///
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Span {
     /// The position of the first character in the span.

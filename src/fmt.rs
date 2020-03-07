@@ -706,6 +706,20 @@ impl Formatter {
         }
     }
 
+    /// Create a new formatter with no highlights and the specified margin color.
+    ///
+    /// # Note
+    ///
+    /// By default line numbers are shown. You can disable them using the
+    /// [`hide_line_numbers`](Formatter::hide_line_numbers) method.
+    pub fn with_color(margin_color: Color) -> Self {
+        Self {
+            highlights: Vec::new(),
+            show_line_numbers: true,
+            margin_color,
+        }
+    }
+
     /// Show the line numbers in the output.
     ///
     /// This is the default.

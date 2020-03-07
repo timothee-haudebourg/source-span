@@ -1,6 +1,3 @@
-extern crate source_span;
-extern crate utf8_decode;
-
 use source_span::{
     fmt::{Color, Formatter, Style},
     Position, Span,
@@ -28,7 +25,7 @@ fn main() -> std::io::Result<()> {
     let chars = UnsafeDecoder::new(file.bytes());
     let buffer = source_span::lazy::Buffer::new(chars, Position::default());
 
-    let mut fmt = Formatter::new(Color::Blue);
+    let mut fmt = Formatter::with_color(Color::Blue);
 
     let mut tokens = Vec::new();
     let mut current = Token::default();
