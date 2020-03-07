@@ -127,10 +127,10 @@ impl<I: Iterator<Item = Result<char>>> Inner<I> {
 //
 impl<I: Iterator<Item = Result<char>>> Buffer<I> {
     /// Create a new empty buffer starting at the given position.
-    pub fn new(input: I, position: Position) -> Buffer<I> {
-        Buffer {
+    pub fn new(input: I, position: Position) -> Self {
+        Self {
             p: RefCell::new(Inner {
-                input: input,
+                input,
                 error: None,
                 data: Vec::new(),
                 lines: vec![0],
@@ -185,7 +185,7 @@ impl<I: Iterator<Item = Result<char>>> Buffer<I> {
     /// stream.
     pub fn iter(&self) -> Iter<I> {
         Iter {
-            buffer: &self,
+            buffer: self,
             i: Some(Ok(0)),
             pos: self.p.borrow().span.start(),
             end: Position::end(),
@@ -201,10 +201,11 @@ impl<I: Iterator<Item = Result<char>>> Buffer<I> {
     pub fn iter_from(&self, pos: Position) -> Iter<I> {
         let start = self.p.borrow().span.start();
         let pos = std::cmp::max(start, pos);
+
         Iter {
-            buffer: &self,
+            buffer: self,
             i: self.index_at(pos),
-            pos: pos,
+            pos,
             end: Position::end(),
         }
     }
@@ -218,10 +219,11 @@ impl<I: Iterator<Item = Result<char>>> Buffer<I> {
     pub fn iter_span(&self, span: Span) -> Iter<I> {
         let start = self.p.borrow().span.start();
         let pos = std::cmp::max(start, span.start());
+
         Iter {
-            buffer: &self,
+            buffer: self,
             i: self.index_at(pos),
-            pos: pos,
+            pos,
             end: span.end(),
         }
     }
@@ -244,12 +246,7 @@ impl<'b, I: 'b + Iterator<Item = Result<char>>> Iter<'b, I> {
         let mut string = String::new();
 
         for c in self {
-            match c {
-                Ok(c) => {
-                    string.push(c);
-                }
-                Err(e) => return Err(e),
-            }
+            string.push(c?);
         }
 
         Ok(string)
@@ -267,7 +264,7 @@ impl<'b, I: 'b + Iterator<Item = Result<char>>> Iterator for Iter<'b, I> {
                 Some(Ok(ref mut i)) => match self.buffer.get(*i) {
                     Some(Ok(c)) => {
                         self.pos = self.pos.next(c);
-                        *i = *i + 1;
+                        *i += 1;
                         Some(Ok(c))
                     }
                     Some(Err(e)) => Some(Err(e)),

@@ -1,6 +1,5 @@
-#[cfg(feature = "termion")]
-extern crate termion;
-
+#![allow(clippy::needless_doctest_main)]
+#![warn(clippy::nursery, clippy::must_use_candidate, clippy::pedantic)]
 use std::cmp::{Ord, Ordering, PartialOrd};
 
 mod position;
@@ -138,13 +137,13 @@ pub struct Span {
 }
 
 impl PartialOrd for Span {
-    fn partial_cmp(&self, other: &Span) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for Span {
-    fn cmp(&self, other: &Span) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         self.end.cmp(&other.end)
     }
 }
@@ -155,7 +154,8 @@ impl Span {
     /// If the `end` position or the `last` position is before the `start` position then the
     /// returned span will be `[start, start]`.
     /// If the `last` position is equal to `end` while the span is not empty, it will panic.
-    pub fn new(start: Position, mut last: Position, mut end: Position) -> Span {
+    #[must_use]
+    pub fn new(start: Position, mut last: Position, mut end: Position) -> Self {
         if end < start || last < start {
             last = start;
             end = start;
@@ -165,37 +165,38 @@ impl Span {
             panic!("invalid span ({:?}, {:?}, {:?})", start, last, end);
         }
 
-        Span {
-            start: start,
-            last: last,
-            end: end,
-        }
+        Self { start, last, end }
     }
 
     /// Return the position of the first character in the span.
-    pub fn start(&self) -> Position {
+    #[must_use]
+    pub const fn start(&self) -> Position {
         self.start
     }
 
     /// Return the last position included in the span.
-    pub fn last(&self) -> Position {
+    #[must_use]
+    pub const fn last(&self) -> Position {
         self.last
     }
 
     /// Return the position of the character directly following the span.
     ///
     /// It is not included in the span.
-    pub fn end(&self) -> Position {
+    #[must_use]
+    pub const fn end(&self) -> Position {
         self.end
     }
 
     /// Checks if the span is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.start == self.end
     }
 
     /// Checks if two span overlaps.
-    pub fn overlaps(&self, other: &Span) -> bool {
+    #[must_use]
+    pub fn overlaps(&self, other: &Self) -> bool {
         (self.start <= other.start && self.end > other.start)
             || (other.start <= self.start && other.end > self.start)
     }
@@ -203,11 +204,13 @@ impl Span {
     /// The number of lines covered by the span.
     ///
     /// It is at least one, even if the span is empty.
-    pub fn line_count(&self) -> usize {
+    #[must_use]
+    pub const fn line_count(&self) -> usize {
         self.last.line - self.start.line + 1
     }
 
     /// Checks if the span includes the given line.
+    #[must_use]
     pub fn includes_line(&self, line: usize) -> bool {
         line >= self.start.line && line <= self.end.line
     }
@@ -240,15 +243,16 @@ impl Span {
     ///
     /// If the two spans do not overlap, all positions in between will be included in the
     /// resulting span.
-    pub fn union(&self, other: Span) -> Span {
+    #[must_use]
+    pub fn union(&self, other: Self) -> Self {
         if other.last > self.last && other.end > self.end {
-            Span {
+            Self {
                 start: std::cmp::min(self.start, other.start),
                 last: other.last,
                 end: other.end,
             }
         } else {
-            Span {
+            Self {
                 start: std::cmp::min(self.start, other.start),
                 last: self.last,
                 end: self.end,
@@ -260,20 +264,17 @@ impl Span {
     ///
     /// If the two spans do not overlap, then the empty span located at the start of the most
     /// advanced span (maximum of the start of the two spans) is returned.
-    pub fn inter(&self, other: Span) -> Span {
+    #[must_use]
+    pub fn inter(&self, other: Self) -> Self {
         let start = std::cmp::max(self.start, other.start);
-        if other.last < self.last {
-            Span::new(start, other.last, other.end)
-        } else {
-            Span::new(start, other.last, other.end)
-        }
+        Self::new(start, other.last, other.end)
     }
 
     /// Extend the span to the end of the given span.
     ///
     /// This is the *in-place* version of [`union`](Span::union), except that
     /// nothing happens if the input span finishes before the end of `self`.
-    pub fn append(&mut self, other: Span) {
+    pub fn append(&mut self, other: Self) {
         if other.last > self.last && other.end > self.end {
             self.last = other.last;
             self.end = other.end;
@@ -281,8 +282,9 @@ impl Span {
     }
 
     /// Return the next span (defined as `[end, end]`).
-    pub fn next(&self) -> Span {
-        Span {
+    #[must_use]
+    pub const fn next(&self) -> Self {
+        Self {
             start: self.end,
             last: self.end,
             end: self.end,
@@ -301,27 +303,28 @@ impl Span {
     ///  * `start` is at the begining of a line (column 0),
     ///  * `end` is at the end of a line (column [`std::usize::MAX`]),
     ///  * `last` points to the last character of a line (column `std::usize::MAX - 1`).
-    pub fn aligned(&self) -> Span {
-        Span {
+    #[must_use]
+    pub const fn aligned(&self) -> Self {
+        Self {
             start: Position {
                 line: self.start.line,
                 column: 0,
             },
             last: Position {
                 line: self.end.line,
-                column: std::usize::MAX - 1,
+                column: usize::max_value() - 1,
             },
             end: Position {
                 line: self.end.line,
-                column: std::usize::MAX,
+                column: usize::max_value(),
             },
         }
     }
 }
 
 impl From<Position> for Span {
-    fn from(pos: Position) -> Span {
-        Span {
+    fn from(pos: Position) -> Self {
+        Self {
             start: pos,
             last: pos,
             end: pos,
@@ -329,8 +332,8 @@ impl From<Position> for Span {
     }
 }
 
-impl std::fmt::Display for Span {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl ::std::fmt::Display for Span {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         if self.start == self.last {
             write!(f, "{}", self.start)
         } else {
@@ -339,8 +342,8 @@ impl std::fmt::Display for Span {
     }
 }
 
-impl std::fmt::Debug for Span {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl ::std::fmt::Debug for Span {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         write!(f, "[{:?}, {:?}]", self.start, self.end)
     }
 }

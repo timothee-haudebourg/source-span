@@ -26,13 +26,13 @@ pub struct Position {
 }
 
 impl PartialOrd for Position {
-    fn partial_cmp(&self, other: &Position) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for Position {
-    fn cmp(&self, other: &Position) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         match self.line.cmp(&other.line) {
             Ordering::Equal => self.column.cmp(&other.column),
             ord => ord,
@@ -44,42 +44,44 @@ impl Position {
     /// Create a new position given a line and column.
     ///
     /// Indexes starts at `0`.
-    pub fn new(line: usize, column: usize) -> Position {
-        Position {
-            line: line,
-            column: column,
-        }
+    #[must_use]
+    pub const fn new(line: usize, column: usize) -> Self {
+        Self { line, column }
     }
 
     /// Return the maximum position.
     ///
     /// Defined as `(std::usize::MAX, std::usize::MAX)`.
-    pub fn end() -> Position {
-        Position {
-            line: std::usize::MAX,
-            column: std::usize::MAX,
+    #[must_use]
+    pub const fn end() -> Self {
+        Self {
+            line: usize::max_value(),
+            column: usize::max_value(),
         }
     }
 
     /// Move to the next column.
-    pub fn next_column(&self) -> Position {
-        Position {
+    #[must_use]
+    pub const fn next_column(&self) -> Self {
+        Self {
             line: self.line,
             column: self.column + 1,
         }
     }
 
     /// Move to the begining of the line.
-    pub fn reset_column(&self) -> Position {
-        Position {
+    #[must_use]
+    pub const fn reset_column(&self) -> Self {
+        Self {
             line: self.line,
             column: 0,
         }
     }
 
     /// Move to the next line, and reset the column position.
-    pub fn next_line(&self) -> Position {
-        Position {
+    #[must_use]
+    pub const fn next_line(&self) -> Self {
+        Self {
             line: self.line + 1,
             column: 0,
         }
@@ -116,11 +118,12 @@ impl Position {
     /// As for now, double-width characters of full-width characters are *not* supported. They
     /// will move the cursor by only one column as any other regular-width character. You are
     /// welcome to contribute to handle them.
-    pub fn next(&self, c: char) -> Position {
+    #[must_use]
+    pub fn next(&self, c: char) -> Self {
         match c {
             '\n' => self.next_line(),
             '\r' => self.reset_column(),
-            '\t' => Position {
+            '\t' => Self {
                 line: self.line,
                 column: (self.column / 8) * 8 + 8,
             },
@@ -132,9 +135,9 @@ impl Position {
 
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.line == std::usize::MAX || self.column == std::usize::MAX {
-            if self.line == std::usize::MAX {
-                if self.column == std::usize::MAX {
+        if self.line == usize::max_value() || self.column == usize::max_value() {
+            if self.line == usize::max_value() {
+                if self.column == usize::max_value() {
                     write!(f, "line [end] column [end]")
                 } else {
                     write!(f, "line [end] column {}", self.column + 1)
@@ -150,9 +153,9 @@ impl fmt::Display for Position {
 
 impl fmt::Debug for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.line == std::usize::MAX || self.column == std::usize::MAX {
-            if self.line == std::usize::MAX {
-                if self.column == std::usize::MAX {
+        if self.line == usize::max_value() || self.column == usize::max_value() {
+            if self.line == usize::max_value() {
+                if self.column == usize::max_value() {
                     write!(f, "[end]:[end]")
                 } else {
                     write!(f, "[end]:{}", self.column + 1)
