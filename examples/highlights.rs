@@ -58,7 +58,8 @@ fn main() -> std::io::Result<()> {
 
             // reset current token.
             current.string.clear();
-            current.span.clear(); // the span here is moved to the end of itself.
+            current.span.clear(); // the span here is moved to the end of
+                                  // itself.
         }
 
         if new_kind != Kind::Space {

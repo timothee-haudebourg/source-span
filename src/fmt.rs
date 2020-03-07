@@ -56,8 +56,8 @@ use crate::Span;
 /// ```
 /// In this example, the line character is `+`.
 ///
-///  * What boundary marker character to use to point the first and last elements of a
-///    multi-line highlight.
+///  * What boundary marker character to use to point the first and last
+///    elements of a multi-line highlight.
 /// ```txt
 /// 1 |   fn main() {
 ///   |  ___________^
@@ -69,8 +69,9 @@ use crate::Span;
 ///
 /// ## Colors
 ///
-/// If the `colors` feature is enabled, it is also possible to set a color to draw the lines.
-/// This will also make the highlights more bright (or bold), along with the line numbers.
+/// If the `colors` feature is enabled, it is also possible to set a color to
+/// draw the lines. This will also make the highlights more bright (or bold),
+/// along with the line numbers.
 #[derive(Clone, Copy)]
 pub enum Style {
     /// Red curvy underline.
@@ -84,8 +85,8 @@ pub enum Style {
 
     /// Custom highlight format.
     ///
-    /// Specifies the line character, the boundary marker and the color (if the `colors` feature
-    /// is enabled) used to render the highlight.
+    /// Specifies the line character, the boundary marker and the color (if the
+    /// `colors` feature is enabled) used to render the highlight.
     Custom(char, char, Color),
 }
 
@@ -93,19 +94,17 @@ impl Style {
     /// Create a new custom highlight style.
     ///
     /// The `line` character is user to draw the line under the span elements.
-    /// The `marker` character is used to point to the first and last elements of the span when
-    /// relevant.
+    /// The `marker` character is used to point to the first and last elements
+    /// of the span when relevant.
     #[must_use]
     #[cfg(not(feature = "colors"))]
-    pub const fn new(line: char, marker: char) -> Self {
-        Self::Custom(line, marker, ())
-    }
+    pub const fn new(line: char, marker: char) -> Self { Self::Custom(line, marker, ()) }
 
     /// Create a new custom highlight style.
     ///
     /// The `line` character is user to draw the line under the span elements.
-    /// The `marker` character is used to point to the first and last elements of the span when
-    /// relevant.
+    /// The `marker` character is used to point to the first and last elements
+    /// of the span when relevant.
     #[must_use]
     #[cfg(feature = "colors")]
     pub const fn new(line: char, marker: char, color: Color) -> Self {
@@ -122,7 +121,8 @@ impl Style {
         }
     }
 
-    /// The character used to point the first and last element of the span when relevant.
+    /// The character used to point the first and last element of the span when
+    /// relevant.
     #[must_use]
     pub fn marker(&self) -> char {
         match self {
@@ -152,9 +152,10 @@ impl Style {
 
 /// Span highlight.
 ///
-/// Used to define what should be highlighted in the text formatted with the [`Formatter`].
-/// Given a span a label and a style, the formatter will add an line under the elements of the
-/// highlight span, along with the label (if any).
+/// Used to define what should be highlighted in the text formatted with the
+/// [`Formatter`]. Given a span a label and a style, the formatter will add an
+/// line under the elements of the highlight span, along with the label (if
+/// any).
 ///
 /// ```txt
 /// 1 | fn main() {
@@ -164,8 +165,8 @@ impl Style {
 /// ```
 /// # Multiline spans
 ///
-/// The highlight span can cover multiple lines. In that case, only the first and last elements
-/// will be underlined (or pointed).
+/// The highlight span can cover multiple lines. In that case, only the first
+/// and last elements will be underlined (or pointed).
 ///
 /// ```txt
 /// 1 |   fn main() {
@@ -177,8 +178,8 @@ impl Style {
 ///
 /// # Entangled highlights
 ///
-/// Different highlights can overlap without breaking the formatted output, but it may become
-/// difficult to read the exact boundary of each highlight.
+/// Different highlights can overlap without breaking the formatted output, but
+/// it may become difficult to read the exact boundary of each highlight.
 ///
 /// ```txt
 /// 1 |   fn main() {
@@ -195,10 +196,11 @@ impl Style {
 ///   | |_^ this is a pair of braces
 /// ```
 ///
-/// Here the underline character for the string is the same as the boundary marker for the
-/// parenthesis, making it hard to see which is which.
-/// One possible workaround is to change the [`Style`] of the highlights. Changing the boundary
-/// marker for the parenthesis to `|` makes it easier to read the formatted output:
+/// Here the underline character for the string is the same as the boundary
+/// marker for the parenthesis, making it hard to see which is which.
+/// One possible workaround is to change the [`Style`] of the highlights.
+/// Changing the boundary marker for the parenthesis to `|` makes it easier to
+/// read the formatted output:
 ///
 /// ```txt
 /// 1 |   fn main() {
@@ -222,10 +224,10 @@ pub struct Highlight {
 
 /// Text formatter with span highlights.
 ///
-/// This allows you to format a given input `char` stream with highlights and colors (if the
-/// `colors` feature is enabled).
-/// A [`Highlight`] is defined by a [`Span`], a string label and a [`Style`], and will be rendered
-/// with the stream:
+/// This allows you to format a given input `char` stream with highlights and
+/// colors (if the `colors` feature is enabled).
+/// A [`Highlight`] is defined by a [`Span`], a string label and a [`Style`],
+/// and will be rendered with the stream:
 ///
 /// ```txt
 /// 1 | fn main() {
@@ -242,8 +244,8 @@ pub struct Formatter {
     margin_color: Color,
 }
 
-/// Highlight with some more information about where to draw the vertical line so it does not
-/// colide with other highlights, and chere to draw the label.
+/// Highlight with some more information about where to draw the vertical line
+/// so it does not colide with other highlights, and chere to draw the label.
 struct MappedHighlight<'a> {
     h: &'a Highlight,
     column_offset: usize,
@@ -269,13 +271,9 @@ pub enum ColumnStyle {
 }
 
 impl Char {
-    const fn label(c: char, color: Color) -> Self {
-        Self::Label(c, color)
-    }
+    const fn label(c: char, color: Color) -> Self { Self::Label(c, color) }
 
-    const fn space() -> Self {
-        Self::Text(' ')
-    }
+    const fn space() -> Self { Self::Text(' ') }
 
     fn unwrap(self) -> char {
         match self {
@@ -363,9 +361,7 @@ impl Char {
 }
 
 impl From<char> for Char {
-    fn from(c: char) -> Self {
-        Self::Text(c)
-    }
+    fn from(c: char) -> Self { Self::Text(c) }
 }
 
 /// A single line of [`Char`] in the formatted output.
@@ -389,9 +385,7 @@ impl Line {
     }
 
     #[must_use]
-    fn is_empty(&self) -> bool {
-        self.data.len() == self.offset
-    }
+    fn is_empty(&self) -> bool { self.data.len() == self.offset }
 
     #[must_use]
     fn get(&self, i: usize) -> Char {
@@ -546,18 +540,21 @@ impl LineBuffer {
 
         if index == 1 {
             let line = &mut self.lines[index];
+
             for k in i..=j {
                 line.set(k, Char::SpanUnderline(style.line(), style.color()));
             }
         } else {
             for l in 1..=index {
                 let line = &mut self.lines[l];
+
                 if l == 1 {
                     line.set(i, Char::SpanMarker(style.marker(), style.color()));
                     line.set(j, Char::SpanMarker(style.marker(), style.color()));
                 } else if l == index {
                     line.set(i, Char::SpanColumn(ColumnStyle::Normal, style.color()));
                     line.set(j, Char::SpanColumn(ColumnStyle::Normal, style.color()));
+
                     for k in (i + 1)..j {
                         line.set(k, Char::SpanLine(style.color()));
                     }
@@ -579,6 +576,7 @@ impl LineBuffer {
         if abbreviate && self.lines[0].is_first_char(j) {
             self.draw_column(i - 1, style);
             let first_line = &mut self.lines[0];
+
             first_line.set(
                 i - 1,
                 Char::SpanColumn(ColumnStyle::Abbreviated, style.color()),
@@ -587,6 +585,7 @@ impl LineBuffer {
             let index = self.find_free_line(i, j + 1, false);
             for l in 1..=index {
                 let line = &mut self.lines[l];
+
                 if l == 1 {
                     line.set(j, Char::SpanMarker(style.marker(), style.color()));
                 } else {
@@ -609,6 +608,7 @@ impl LineBuffer {
             self.lines[1].draw_label(label, i + 2, style);
         } else {
             let index = self.find_free_line(i, j, true);
+
             for l in 2..=index {
                 let line = &mut self.lines[l];
                 if l == index {
@@ -620,8 +620,8 @@ impl LineBuffer {
         }
     }
 
-    /// Return the index of a secondary line where every character between `i` (included) and
-    /// `j` (excluded) is free (a whitespace).
+    /// Return the index of a secondary line where every character between `i`
+    /// (included) and `j` (excluded) is free (a whitespace).
     fn find_free_line(&mut self, i: usize, j: usize, label: bool) -> usize {
         let mut index = 1;
         'next_line: loop {
@@ -656,6 +656,7 @@ impl LineBuffer {
         let mut new_line = Line::new(self.margin, self.margin_color);
         {
             let last_line = self.lines.last().unwrap();
+
             for i in 0..self.margin {
                 let top = last_line.get(i);
                 let top_right = last_line.get(i + 1);
@@ -666,6 +667,7 @@ impl LineBuffer {
                         Char::SpanColumn(ColumnStyle::Normal, top_right.color().unwrap()),
                     );
                 }
+
                 if (!top_right.is_span_line() && top.is_span_column()) || top.is_margin_column() {
                     new_line.set(i, top);
                 }
@@ -717,11 +719,10 @@ impl Formatter {
     /// By default line numbers are shown. You can disable them using the
     /// [`hide_line_numbers`](Formatter::hide_line_numbers) method.
     #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
+    pub fn new() -> Self { Self::default() }
 
-    /// Create a new formatter with no highlights and the specified margin color.
+    /// Create a new formatter with no highlights and the specified margin
+    /// color.
     ///
     /// # Note
     ///
@@ -739,16 +740,12 @@ impl Formatter {
     /// Show the line numbers in the output.
     ///
     /// This is the default.
-    pub fn show_line_numbers(&mut self) {
-        self.show_line_numbers = true;
-    }
+    pub fn show_line_numbers(&mut self) { self.show_line_numbers = true; }
 
     /// Hide the line numbers in the output.
     ///
     /// By default, line numbers are visible.
-    pub fn hide_line_numbers(&mut self) {
-        self.show_line_numbers = false;
-    }
+    pub fn hide_line_numbers(&mut self) { self.show_line_numbers = false; }
 
     /// Add a span highlight.
     pub fn add(&mut self, span: Span, label: Option<String>, style: Style) {
@@ -758,8 +755,8 @@ impl Formatter {
 
     /// Produce the formatted output.
     ///
-    /// Create a [`String`] containing the content of the input iterator given span, with the
-    /// previously added highlights.
+    /// Create a [`String`] containing the content of the input iterator given
+    /// span, with the previously added highlights.
     pub fn get<I: Iterator<Item = Result<char>>>(
         &self,
         input: I,

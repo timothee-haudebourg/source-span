@@ -5,8 +5,9 @@ use crate::{Position, Span};
 
 /// Lazy string buffer that fills up on demand.
 ///
-/// The `lazy::Buffer` wraps aroung a `char` iterator. It can be itself used as a `char` iterator,
-/// or as a `Buffer` to access an arbitrary fragment of the input source stream.
+/// The `lazy::Buffer` wraps aroung a `char` iterator. It can be itself used as
+/// a `char` iterator, or as a `Buffer` to access an arbitrary fragment of the
+/// input source stream.
 pub struct Buffer<I: Iterator<Item = Result<char>>> {
     p: RefCell<Inner<I>>,
 }
@@ -32,8 +33,8 @@ struct Inner<I: Iterator<Item = Result<char>>> {
 
 impl<I: Iterator<Item = Result<char>>> Inner<I> {
     /// Read the next line from the input stream and add it to the buffer.
-    /// Returns `true` if a new line has been added. Returns `false` if the source stream is
-    /// done.
+    /// Returns `true` if a new line has been added. Returns `false` if the
+    /// source stream is done.
     fn read_line(&mut self) -> bool {
         if self.error.is_none() {
             let line = self.span.end().line;
@@ -60,13 +61,15 @@ impl<I: Iterator<Item = Result<char>>> Inner<I> {
         }
     }
 
-    /// Get the index of the char at the given cursor position if it is in the buffer.
-    /// If it is not in the buffer but after the buffered content, the input stream will be read
-    /// until the buffer span includes the given position.
+    /// Get the index of the char at the given cursor position if it is in the
+    /// buffer. If it is not in the buffer but after the buffered content,
+    /// the input stream will be read until the buffer span includes the
+    /// given position.
     ///
-    /// Returns `None` if the given position if previous to the buffer start positions, if the
-    /// source stream ends before the given position, or if the line at the given position is
-    /// shorter than the given position column.
+    /// Returns `None` if the given position if previous to the buffer start
+    /// positions, if the source stream ends before the given position, or
+    /// if the line at the given position is shorter than the given position
+    /// column.
     fn index_at(&mut self, pos: Position) -> Option<Result<usize>> {
         if pos < self.span.start() {
             None
@@ -106,9 +109,10 @@ impl<I: Iterator<Item = Result<char>>> Inner<I> {
 
     /// Get the character at the given index.
     ///
-    /// If it is not in the buffer but after the buffered content, the input stream will be read
-    /// until the buffer span includes the given position.
-    /// Returns `None` if the source stream ends before the given position.
+    /// If it is not in the buffer but after the buffered content, the input
+    /// stream will be read until the buffer span includes the given
+    /// position. Returns `None` if the source stream ends before the given
+    /// position.
     fn get(&mut self, i: usize) -> Option<Result<char>> {
         while i >= self.data.len() && self.read_line() {}
 
@@ -140,28 +144,30 @@ impl<I: Iterator<Item = Result<char>>> Buffer<I> {
     }
 
     /// Get the span of the entire buffered data.
-    pub fn span(&self) -> Span {
-        self.p.borrow().span
-    }
+    pub fn span(&self) -> Span { self.p.borrow().span }
 
-    /// Get the index of the char at the given cursor position if it is in the buffer.
-    /// If it is not in the buffer but after the buffered content, the input stream will be read
-    /// until the buffer span includes the given position.
+    /// Get the index of the char at the given cursor position if it is in the
+    /// buffer. If it is not in the buffer but after the buffered content,
+    /// the input stream will be read until the buffer span includes the
+    /// given position.
     ///
-    /// Returns `None` if the given position if previous to the buffer start positions, if the
-    /// source stream ends before the given position, or if the line at the given position is
-    /// shorter than the given position column.
+    /// Returns `None` if the given position if previous to the buffer start
+    /// positions, if the source stream ends before the given position, or
+    /// if the line at the given position is shorter than the given position
+    /// column.
     pub fn index_at(&self, pos: Position) -> Option<Result<usize>> {
         self.p.borrow_mut().index_at(pos)
     }
 
     /// Get the char at the given position if it is in the buffer.
-    /// If it is not in the buffer but after the buffered content, the input stream will be read
-    /// until the buffer span includes the given position.
+    /// If it is not in the buffer but after the buffered content, the input
+    /// stream will be read until the buffer span includes the given
+    /// position.
     ///
-    /// Returns `None` if the given position if previous to the buffer start positions, if the
-    /// source stream ends before the given position, or if the line at the given position is
-    /// shorter than the given position column.
+    /// Returns `None` if the given position if previous to the buffer start
+    /// positions, if the source stream ends before the given position, or
+    /// if the line at the given position is shorter than the given position
+    /// column.
     pub fn at(&self, pos: Position) -> Option<Result<char>> {
         match self.index_at(pos) {
             Some(Ok(i)) => self.p.borrow_mut().get(i),
@@ -172,17 +178,17 @@ impl<I: Iterator<Item = Result<char>>> Buffer<I> {
 
     /// Get the character at the given index.
     ///
-    /// If it is not in the buffer but after the buffered content, the input stream will be read
-    /// until the buffer span includes the given position.
-    /// Returns `None` if the source stream ends before the given position.
-    fn get(&self, i: usize) -> Option<Result<char>> {
-        self.p.borrow_mut().get(i)
-    }
+    /// If it is not in the buffer but after the buffered content, the input
+    /// stream will be read until the buffer span includes the given
+    /// position. Returns `None` if the source stream ends before the given
+    /// position.
+    fn get(&self, i: usize) -> Option<Result<char>> { self.p.borrow_mut().get(i) }
 
-    /// Returns an iterator through the characters of the buffer from the begining of it.
+    /// Returns an iterator through the characters of the buffer from the
+    /// begining of it.
     ///
-    /// When it reaches the end of the buffer, the buffer will start reading from the source
-    /// stream.
+    /// When it reaches the end of the buffer, the buffer will start reading
+    /// from the source stream.
     pub fn iter(&self) -> Iter<I> {
         Iter {
             buffer: self,
@@ -192,12 +198,13 @@ impl<I: Iterator<Item = Result<char>>> Buffer<I> {
         }
     }
 
-    /// Returns an iterator through the characters of the buffer from the given position.
+    /// Returns an iterator through the characters of the buffer from the given
+    /// position.
     ///
-    /// If the input position precedes the buffer start position, then it will start from the
-    /// buffer start position.
-    /// When it reaches the end of the buffer, the buffer will start reading from the source
-    /// stream.
+    /// If the input position precedes the buffer start position, then it will
+    /// start from the buffer start position.
+    /// When it reaches the end of the buffer, the buffer will start reading
+    /// from the source stream.
     pub fn iter_from(&self, pos: Position) -> Iter<I> {
         let start = self.p.borrow().span.start();
         let pos = std::cmp::max(start, pos);
@@ -210,12 +217,13 @@ impl<I: Iterator<Item = Result<char>>> Buffer<I> {
         }
     }
 
-    /// Returns an iterator through the characters of the buffer in the given span.
+    /// Returns an iterator through the characters of the buffer in the given
+    /// span.
     ///
-    /// If the input start position precedes the buffer start position, then it will start from the
-    /// buffer start position.
-    /// When it reaches the end of the buffer, the buffer will start reading from the source
-    /// stream.
+    /// If the input start position precedes the buffer start position, then it
+    /// will start from the buffer start position.
+    /// When it reaches the end of the buffer, the buffer will start reading
+    /// from the source stream.
     pub fn iter_span(&self, span: Span) -> Iter<I> {
         let start = self.p.borrow().span.start();
         let pos = std::cmp::max(start, span.start());
@@ -231,9 +239,10 @@ impl<I: Iterator<Item = Result<char>>> Buffer<I> {
 
 /// Iterator over the characters of a [`Buffer`].
 ///
-/// This iterator is created using the [`Buffer::iter`] method or the [`Buffer::iter_from`] method.
-/// When it reaches the end of the buffer, the buffer will start reading from the source
-/// stream until the stream itself return `None`.
+/// This iterator is created using the [`Buffer::iter`] method or the
+/// [`Buffer::iter_from`] method. When it reaches the end of the buffer, the
+/// buffer will start reading from the source stream until the stream itself
+/// return `None`.
 pub struct Iter<'b, I: 'b + Iterator<Item = Result<char>>> {
     buffer: &'b Buffer<I>,
     i: Option<Result<usize>>,
@@ -261,15 +270,17 @@ impl<'b, I: 'b + Iterator<Item = Result<char>>> Iterator for Iter<'b, I> {
             None
         } else {
             match &mut self.i {
-                Some(Ok(ref mut i)) => match self.buffer.get(*i) {
-                    Some(Ok(c)) => {
-                        self.pos = self.pos.next(c);
-                        *i += 1;
-                        Some(Ok(c))
+                Some(Ok(ref mut i)) => {
+                    match self.buffer.get(*i) {
+                        Some(Ok(c)) => {
+                            self.pos = self.pos.next(c);
+                            *i += 1;
+                            Some(Ok(c))
+                        }
+                        Some(Err(e)) => Some(Err(e)),
+                        None => None,
                     }
-                    Some(Err(e)) => Some(Err(e)),
-                    None => None,
-                },
+                }
                 None => None,
                 ref mut i => {
                     let mut new_i = None;

@@ -70,24 +70,29 @@ pub use position::Position;
 ///
 /// ## Span construction with the `push*` methods
 ///
-/// A span can be directly created using the [`new`](Span::new) method, however in the context of parsing
-/// (or lexing) it might be useful to build spans incrementally.
-/// The `push*` methods family will help you do that.
+/// A span can be directly created using the [`new`](Span::new) method, however
+/// in the context of parsing (or lexing) it might be useful to build spans
+/// incrementally. The `push*` methods family will help you do that.
 ///
-///   * [`push`](Span::push) will extend the span to include the given character located at the spans `end`.
-///   * [`push_column`](Span::push_column) will extend the span to include the next column. Note that this does not
-/// necessarily correspond to the next character (if it is a NL, or a full-width character for
-/// instance).
-///   * [`push_line`](Span::push_line) will extend the span to include the rest of the line. The end of the span will be
+///   * [`push`](Span::push) will extend the span to include the given character
+///     located at the spans `end`.
+///   * [`push_column`](Span::push_column) will extend the span to include the
+///     next column. Note that this does not
+/// necessarily correspond to the next character (if it is a NL, or a full-width
+/// character for instance).
+///   * [`push_line`](Span::push_line) will extend the span to include the rest
+///     of the line. The end of the span will be
 /// placed at the begining of the next line.
 ///
-///   * The [`next`](Span::next) method can finally be used to create the span to `[end, end]` (when a token has
-/// been read entirely for instance) and start building the next span. The [`clear`](Span::clear) method
-/// does the same but *in place*.
+///   * The [`next`](Span::next) method can finally be used to create the span
+///     to `[end, end]` (when a token has
+/// been read entirely for instance) and start building the next span. The
+/// [`clear`](Span::clear) method does the same but *in place*.
 ///
 /// ## Example
 ///
-/// Here is a basic example computing the span of every word/token in a `char` stream.
+/// Here is a basic example computing the span of every word/token in a `char`
+/// stream.
 ///
 /// ```rust
 /// use source_span::Span;
@@ -137,23 +142,20 @@ pub struct Span {
 }
 
 impl PartialOrd for Span {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> { Some(self.cmp(other)) }
 }
 
 impl Ord for Span {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.end.cmp(&other.end)
-    }
+    fn cmp(&self, other: &Self) -> Ordering { self.end.cmp(&other.end) }
 }
 
 impl Span {
     /// Create a new span from three positions.
     ///
-    /// If the `end` position or the `last` position is before the `start` position then the
-    /// returned span will be `[start, start]`.
-    /// If the `last` position is equal to `end` while the span is not empty, it will panic.
+    /// If the `end` position or the `last` position is before the `start`
+    /// position then the returned span will be `[start, start]`.
+    /// If the `last` position is equal to `end` while the span is not empty, it
+    /// will panic.
     #[must_use]
     pub fn new(start: Position, mut last: Position, mut end: Position) -> Self {
         if end < start || last < start {
@@ -170,29 +172,21 @@ impl Span {
 
     /// Return the position of the first character in the span.
     #[must_use]
-    pub const fn start(&self) -> Position {
-        self.start
-    }
+    pub const fn start(&self) -> Position { self.start }
 
     /// Return the last position included in the span.
     #[must_use]
-    pub const fn last(&self) -> Position {
-        self.last
-    }
+    pub const fn last(&self) -> Position { self.last }
 
     /// Return the position of the character directly following the span.
     ///
     /// It is not included in the span.
     #[must_use]
-    pub const fn end(&self) -> Position {
-        self.end
-    }
+    pub const fn end(&self) -> Position { self.end }
 
     /// Checks if the span is empty.
     #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.start == self.end
-    }
+    pub fn is_empty(&self) -> bool { self.start == self.end }
 
     /// Checks if two span overlaps.
     #[must_use]
@@ -205,9 +199,7 @@ impl Span {
     ///
     /// It is at least one, even if the span is empty.
     #[must_use]
-    pub const fn line_count(&self) -> usize {
-        self.last.line - self.start.line + 1
-    }
+    pub const fn line_count(&self) -> usize { self.last.line - self.start.line + 1 }
 
     /// Checks if the span includes the given line.
     #[must_use]
@@ -218,8 +210,8 @@ impl Span {
     /// Extends the span to include the next column.
     ///
     /// Note that this does not necessarily correspond
-    /// to the next character (if it is a NL, or a full-width character for instance).
-    /// To do that you can use the [`push`](Span::push) method.
+    /// to the next character (if it is a NL, or a full-width character for
+    /// instance). To do that you can use the [`push`](Span::push) method.
     pub fn push_column(&mut self) {
         self.last = self.end;
         self.end = self.end.next_column();
@@ -233,7 +225,8 @@ impl Span {
         self.end = self.end.next_line();
     }
 
-    /// Extend the span to include the given character located at the spans `end` position.
+    /// Extend the span to include the given character located at the spans
+    /// `end` position.
     pub fn push(&mut self, c: char) {
         self.last = self.end;
         self.end = self.end.next(c);
@@ -241,8 +234,8 @@ impl Span {
 
     /// Compute the union of two spans.
     ///
-    /// If the two spans do not overlap, all positions in between will be included in the
-    /// resulting span.
+    /// If the two spans do not overlap, all positions in between will be
+    /// included in the resulting span.
     #[must_use]
     pub fn union(&self, other: Self) -> Self {
         if other.last > self.last && other.end > self.end {
@@ -262,8 +255,9 @@ impl Span {
 
     /// Computes the intersection of the two spans.
     ///
-    /// If the two spans do not overlap, then the empty span located at the start of the most
-    /// advanced span (maximum of the start of the two spans) is returned.
+    /// If the two spans do not overlap, then the empty span located at the
+    /// start of the most advanced span (maximum of the start of the two
+    /// spans) is returned.
     #[must_use]
     pub fn inter(&self, other: Self) -> Self {
         let start = std::cmp::max(self.start, other.start);
@@ -302,7 +296,8 @@ impl Span {
     /// This will compute the smallest span including `self` such that
     ///  * `start` is at the begining of a line (column 0),
     ///  * `end` is at the end of a line (column [`std::usize::MAX`]),
-    ///  * `last` points to the last character of a line (column `std::usize::MAX - 1`).
+    ///  * `last` points to the last character of a line (column
+    ///    `std::usize::MAX - 1`).
     #[must_use]
     pub const fn aligned(&self) -> Self {
         Self {

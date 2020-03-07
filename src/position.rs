@@ -3,18 +3,20 @@ use std::fmt;
 /// Position in a source file.
 ///
 /// This holds the line and column position of a character in a source file.
-/// Some operations are available to move position in a file. In partular, the [`next`](Position::next) method
-/// computes the next cursor position after reading a given [`char`].
+/// Some operations are available to move position in a file. In partular, the
+/// [`next`](Position::next) method computes the next cursor position after
+/// reading a given [`char`].
 ///
 /// ## Display
 ///
 /// The struct implements two different format traits:
 ///
-///  * [`fmt::Display`] will format the position as `line {line} column {column}`
+///  * [`fmt::Display`] will format the position as `line {line} column
+///    {column}`
 ///  * [`fmt::Debug`] will format the position as `{line}:{column}`.
 ///
-/// Both of them will display lines and columns starting at `1` even though the internal
-/// representation starts at `0`.
+/// Both of them will display lines and columns starting at `1` even though the
+/// internal representation starts at `0`.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 pub struct Position {
     /// Line number, starting at `0`.
@@ -29,9 +31,7 @@ impl Position {
     ///
     /// Indexes starts at `0`.
     #[must_use]
-    pub const fn new(line: usize, column: usize) -> Self {
-        Self { line, column }
-    }
+    pub const fn new(line: usize, column: usize) -> Self { Self { line, column } }
 
     /// Return the maximum position.
     ///
@@ -40,7 +40,10 @@ impl Position {
     /// ```
     /// use source_span::Position;
     ///
-    /// assert_eq!(Position::end(), Position::new(usize::max_value(), usize::max_value()));
+    /// assert_eq!(
+    ///     Position::end(),
+    ///     Position::new(usize::max_value(), usize::max_value())
+    /// );
     /// ```
     #[must_use]
     pub const fn end() -> Self {
@@ -81,42 +84,48 @@ impl Position {
     ///
     /// ## Control characters
     ///
-    /// This crate is intended to help with incremental lexing/parsing. Therefore, any control
-    /// character moving the cursor backward will be ignored: it will be
-    /// treated as a 0-width character with no semantics.
+    /// This crate is intended to help with incremental lexing/parsing.
+    /// Therefore, any control character moving the cursor backward will be
+    /// ignored: it will be treated as a 0-width character with no
+    /// semantics.
     ///
     /// ### New lines
     ///
-    /// The `\n` character is interpreted with the Unix semantics, as the new line (NL) character.
-    /// It will reset the column position to `0` and move to the next line.
+    /// The `\n` character is interpreted with the Unix semantics, as the new
+    /// line (NL) character. It will reset the column position to `0` and
+    /// move to the next line.
     ///
     /// ### Tabulations
     ///
     /// The `\t` will move the cursor to the next horizontal tab-top.
     /// This function assumes there is a tab-stop every 8 columns.
-    /// Note that there is no standard on the size of a tabulation, however a length of 8 columns
-    /// seems typical.
+    /// Note that there is no standard on the size of a tabulation, however a
+    /// length of 8 columns seems typical.
     ///
     /// As of today, there is no way to use another tab length.
     ///
-    /// I understand that this lacks of flexibility may become an issue in the near future,
-    /// and I will try to add this possibility. In the meantime, you are very welcome to contribute
-    /// if you need this feature right away.
+    /// I understand that this lacks of flexibility may become an issue in the
+    /// near future, and I will try to add this possibility. In the
+    /// meantime, you are very welcome to contribute if you need this
+    /// feature right away.
     ///
     /// ## Full-width characters
     ///
-    /// As for now, double-width characters of full-width characters are *not* supported. They
-    /// will move the cursor by only one column as any other regular-width character. You are
-    /// welcome to contribute to handle them.
+    /// As for now, double-width characters of full-width characters are *not*
+    /// supported. They will move the cursor by only one column as any other
+    /// regular-width character. You are welcome to contribute to handle
+    /// them.
     #[must_use]
     pub fn next(&self, c: char) -> Self {
         match c {
             '\n' => self.next_line(),
             '\r' => self.reset_column(),
-            '\t' => Self {
-                line: self.line,
-                column: (self.column / 8) * 8 + 8,
-            },
+            '\t' => {
+                Self {
+                    line: self.line,
+                    column: (self.column / 8) * 8 + 8,
+                }
+            }
             c if c.is_control() => *self,
             _ => self.next_column(),
         }
@@ -167,7 +176,8 @@ mod tests {
 
     // An order is a total order if it is (for all a, b and c):
     // - total and antisymmetric: exactly one of a < b, a == b or a > b is true; and
-    // - transitive, a < b and b < c implies a < c. The same must hold for both == and >.
+    // - transitive, a < b and b < c implies a < c. The same must hold for both ==
+    //   and >.
     #[test]
     fn test_ord_position() {
         assert_eq!(
