@@ -341,3 +341,21 @@ impl ::std::fmt::Display for Span {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_display_span() {
+        assert_eq!(
+            Span::new(
+                Position::new(0, 0),
+                Position::new(1, 20),
+                Position::new(3, 41),
+            )
+            .to_string(),
+            "from 1:1 to 4:42".to_string()
+        );
+    }
+}

@@ -150,3 +150,70 @@ impl fmt::Debug for Position {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! min {
+        ($x: expr) => ($x);
+        ($x: expr, $($z: expr),+ $(,)* ) => (::std::cmp::min($x, min!($($z),*)));
+    }
+
+    macro_rules! max {
+        ($x: expr) => ($x);
+        ($x: expr, $($z: expr),+ $(,)* ) => (::std::cmp::max($x, max!($($z),*)));
+    }
+
+    // An order is a total order if it is (for all a, b and c):
+    // - total and antisymmetric: exactly one of a < b, a == b or a > b is true; and
+    // - transitive, a < b and b < c implies a < c. The same must hold for both == and >.
+    #[test]
+    fn test_ord_position() {
+        assert_eq!(
+            min!(
+                Position::new(1, 2),
+                Position::new(1, 3),
+                Position::new(1, 4),
+                Position::new(1, 2),
+                Position::new(2, 1),
+                Position::new(3, 12),
+                Position::new(4, 4),
+            ),
+            Position::new(1, 2)
+        );
+
+        assert_eq!(
+            max!(
+                Position::new(1, 2),
+                Position::new(1, 3),
+                Position::new(1, 4),
+                Position::new(1, 2),
+                Position::new(2, 1),
+                Position::new(3, 12),
+                Position::new(4, 4),
+            ),
+            Position::new(4, 4)
+        );
+    }
+
+    #[test]
+    fn test_debug() {
+        assert_eq!(format!("{:?}", Position::new(2, 3)), "3:4".to_string());
+        assert_eq!(
+            format!("{:?}", Position::new(usize::max_value(), 3)),
+            "[end]:4".to_string()
+        );
+        assert_eq!(
+            format!("{:?}", Position::new(3, usize::max_value())),
+            "4:[end]".to_string()
+        );
+        assert_eq!(
+            format!(
+                "{:?}",
+                Position::new(usize::max_value(), usize::max_value())
+            ),
+            "[end]:[end]".to_string()
+        );
+    }
+}
