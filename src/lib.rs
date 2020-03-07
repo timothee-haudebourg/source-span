@@ -122,7 +122,7 @@ pub use position::Position;
 ///     tokens.push(current);
 /// }
 /// ```
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Span {
     /// The position of the first character in the span.
     start: Position,
@@ -339,11 +339,5 @@ impl ::std::fmt::Display for Span {
         } else {
             write!(f, "from {:?} to {:?}", self.start, self.end)
         }
-    }
-}
-
-impl ::std::fmt::Debug for Span {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "[{:?}, {:?}]", self.start, self.end)
     }
 }
