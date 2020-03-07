@@ -119,16 +119,12 @@ impl Position {
 
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.line == usize::max_value() || self.column == usize::max_value() {
-            if self.line == usize::max_value() {
-                if self.column == usize::max_value() {
-                    write!(f, "line [end] column [end]")
-                } else {
-                    write!(f, "line [end] column {}", self.column + 1)
-                }
-            } else {
-                write!(f, "line {} column [end]", self.line + 1)
-            }
+        if self.line == usize::max_value() && self.column == usize::max_value() {
+            write!(f, "line [end] column [end]")
+        } else if self.line == usize::max_value() {
+            write!(f, "line [end] column {}", self.column + 1)
+        } else if self.column == usize::max_value() {
+            write!(f, "line {} column [end]", self.line + 1)
         } else {
             write!(f, "line {} column {}", self.line + 1, self.column + 1)
         }
@@ -137,16 +133,12 @@ impl fmt::Display for Position {
 
 impl fmt::Debug for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.line == usize::max_value() || self.column == usize::max_value() {
-            if self.line == usize::max_value() {
-                if self.column == usize::max_value() {
-                    write!(f, "[end]:[end]")
-                } else {
-                    write!(f, "[end]:{}", self.column + 1)
-                }
-            } else {
-                write!(f, "{}:[end]", self.line + 1)
-            }
+        if self.line == usize::max_value() && self.column == usize::max_value() {
+            write!(f, "[end]:[end]")
+        } else if self.line == usize::max_value() {
+            write!(f, "[end]:{}", self.column + 1)
+        } else if self.column == usize::max_value() {
+            write!(f, "{}:[end]", self.line + 1)
         } else {
             write!(f, "{}:{}", self.line + 1, self.column + 1)
         }
