@@ -1,4 +1,3 @@
-use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
 
 /// Position in a source file.
@@ -16,28 +15,13 @@ use std::fmt;
 ///
 /// Both of them will display lines and columns starting at `1` even though the internal
 /// representation starts at `0`.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 pub struct Position {
     /// Line number, starting at `0`.
     pub line: usize,
 
     /// Column number, starting at `0`.
     pub column: usize,
-}
-
-impl PartialOrd for Position {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Position {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.line.cmp(&other.line) {
-            Ordering::Equal => self.column.cmp(&other.column),
-            ord => ord,
-        }
-    }
 }
 
 impl Position {
