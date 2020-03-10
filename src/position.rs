@@ -1,87 +1,82 @@
 use std::fmt;
-use std::cmp::{PartialOrd, Ord, Ordering};
 
 /// Position in a source file.
 ///
 /// This holds the line and column position of a character in a source file.
-/// Some operations are available to move position in a file. In partular, the [`next`](Position::next) method
-/// computes the next cursor position after reading a given [`char`].
+/// Some operations are available to move position in a file. In partular, the
+/// [`next`](Position::next) method computes the next cursor position after
+/// reading a given [`char`].
 ///
 /// ## Display
 ///
 /// The struct implements two different format traits:
 ///
-///  * [`fmt::Display`] will format the position as `line {line} column {column}`
+///  * [`fmt::Display`] will format the position as `line {line} column
+///    {column}`
 ///  * [`fmt::Debug`] will format the position as `{line}:{column}`.
 ///
-/// Both of them will display lines and columns starting at `1` even though the internal
-/// representation starts at `0`.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
+/// Both of them will display lines and columns starting at `1` even though the
+/// internal representation starts at `0`.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 pub struct Position {
     /// Line number, starting at `0`.
     pub line: usize,
 
     /// Column number, starting at `0`.
-    pub column: usize
-}
-
-impl PartialOrd for Position {
-    fn partial_cmp(&self, other: &Position) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Position {
-    fn cmp(&self, other: &Position) -> Ordering {
-        match self.line.cmp(&other.line) {
-            Ordering::Equal => self.column.cmp(&other.column),
-            ord => ord
-        }
-    }
+    pub column: usize,
 }
 
 impl Position {
     /// Create a new position given a line and column.
     ///
     /// Indexes starts at `0`.
-    pub fn new(line: usize, column: usize) -> Position {
-        Position {
-            line: line,
-            column: column
-        }
-    }
+    #[must_use]
+    pub const fn new(line: usize, column: usize) -> Self { Self { line, column } }
 
     /// Return the maximum position.
     ///
-    /// Defined as `(std::usize::MAX, std::usize::MAX)`.
-    pub fn end() -> Position {
-        Position {
-            line: std::usize::MAX,
-            column: std::usize::MAX
+    /// # Example
+    ///
+    /// ```
+    /// use source_span::Position;
+    ///
+    /// assert_eq!(
+    ///     Position::end(),
+    ///     Position::new(usize::max_value(), usize::max_value())
+    /// );
+    /// ```
+    #[must_use]
+    pub const fn end() -> Self {
+        Self {
+            line: usize::max_value(),
+            column: usize::max_value(),
         }
     }
 
     /// Move to the next column.
-    pub fn next_column(&self) -> Position {
-        Position {
+    #[must_use]
+    pub const fn next_column(&self) -> Self {
+        Self {
             line: self.line,
-            column: self.column+1
+            column: self.column + 1,
         }
     }
 
     /// Move to the begining of the line.
-    pub fn reset_column(&self) -> Position {
-        Position {
+    #[must_use]
+    pub const fn reset_column(&self) -> Self {
+        Self {
             line: self.line,
-            column: 0
+            column: 0,
         }
     }
 
     /// Move to the next line, and reset the column position.
-    pub fn next_line(&self) -> Position {
-        Position {
-            line: self.line+1,
-            column: 0
+    #[must_use]
+    pub const fn next_line(&self) -> Self {
+        Self {
+            line: self.line + 1,
+            column: 0,
         }
     }
 
@@ -89,79 +84,146 @@ impl Position {
     ///
     /// ## Control characters
     ///
-    /// This crate is intended to help with incremental lexing/parsing. Therefore, any control
-    /// character moving the cursor backward will be ignored: it will be
-    /// treated as a 0-width character with no semantics.
+    /// This crate is intended to help with incremental lexing/parsing.
+    /// Therefore, any control character moving the cursor backward will be
+    /// ignored: it will be treated as a 0-width character with no
+    /// semantics.
     ///
     /// ### New lines
     ///
-    /// The `\n` character is interpreted with the Unix semantics, as the new line (NL) character.
-    /// It will reset the column position to `0` and move to the next line.
+    /// The `\n` character is interpreted with the Unix semantics, as the new
+    /// line (NL) character. It will reset the column position to `0` and
+    /// move to the next line.
     ///
     /// ### Tabulations
     ///
     /// The `\t` will move the cursor to the next horizontal tab-top.
     /// This function assumes there is a tab-stop every 8 columns.
-    /// Note that there is no standard on the size of a tabulation, however a length of 8 columns
-    /// seems typical.
+    /// Note that there is no standard on the size of a tabulation, however a
+    /// length of 8 columns seems typical.
     ///
     /// As of today, there is no way to use another tab length.
     ///
-    /// I understand that this lacks of flexibility may become an issue in the near future,
-    /// and I will try to add this possibility. In the meantime, you are very welcome to contribute
-    /// if you need this feature right away.
+    /// I understand that this lacks of flexibility may become an issue in the
+    /// near future, and I will try to add this possibility. In the
+    /// meantime, you are very welcome to contribute if you need this
+    /// feature right away.
     ///
     /// ## Full-width characters
     ///
-    /// As for now, double-width characters of full-width characters are *not* supported. They
-    /// will move the cursor by only one column as any other regular-width character. You are
-    /// welcome to contribute to handle them.
-    pub fn next(&self, c: char) -> Position {
+    /// As for now, double-width characters of full-width characters are *not*
+    /// supported. They will move the cursor by only one column as any other
+    /// regular-width character. You are welcome to contribute to handle
+    /// them.
+    #[must_use]
+    pub fn next(&self, c: char) -> Self {
         match c {
             '\n' => self.next_line(),
             '\r' => self.reset_column(),
-            '\t' => Position {
-                line: self.line,
-                column: (self.column/8)*8 + 8
-            },
+            '\t' => {
+                Self {
+                    line: self.line,
+                    column: (self.column / 8) * 8 + 8,
+                }
+            }
             c if c.is_control() => *self,
-            _ => self.next_column()
+            _ => self.next_column(),
         }
     }
 }
 
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.line == std::usize::MAX || self.column == std::usize::MAX {
-            if self.line == std::usize::MAX {
-                if self.column == std::usize::MAX {
-                    write!(f, "line [end] column [end]")
-                } else {
-                    write!(f, "line [end] column {}", self.column+1)
-                }
-            } else {
-                write!(f, "line {} column [end]", self.line+1)
-            }
+        if self.line == usize::max_value() && self.column == usize::max_value() {
+            write!(f, "line [end] column [end]")
+        } else if self.line == usize::max_value() {
+            write!(f, "line [end] column {}", self.column + 1)
+        } else if self.column == usize::max_value() {
+            write!(f, "line {} column [end]", self.line + 1)
         } else {
-            write!(f, "line {} column {}", self.line+1, self.column+1)
+            write!(f, "line {} column {}", self.line + 1, self.column + 1)
         }
     }
 }
 
 impl fmt::Debug for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.line == std::usize::MAX || self.column == std::usize::MAX {
-            if self.line == std::usize::MAX {
-                if self.column == std::usize::MAX {
-                    write!(f, "[end]:[end]")
-                } else {
-                    write!(f, "[end]:{}", self.column+1)
-                }
-            } else {
-                write!(f, "{}:[end]", self.line+1)
-            }
+        if self.line == usize::max_value() && self.column == usize::max_value() {
+            write!(f, "[end]:[end]")
+        } else if self.line == usize::max_value() {
+            write!(f, "[end]:{}", self.column + 1)
+        } else if self.column == usize::max_value() {
+            write!(f, "{}:[end]", self.line + 1)
         } else {
-            write!(f, "{}:{}", self.line+1, self.column+1)
+            write!(f, "{}:{}", self.line + 1, self.column + 1)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! min {
+        ($x: expr) => ($x);
+        ($x: expr, $($z: expr),+ $(,)* ) => (::std::cmp::min($x, min!($($z),*)));
+    }
+
+    macro_rules! max {
+        ($x: expr) => ($x);
+        ($x: expr, $($z: expr),+ $(,)* ) => (::std::cmp::max($x, max!($($z),*)));
+    }
+
+    // An order is a total order if it is (for all a, b and c):
+    // - total and antisymmetric: exactly one of a < b, a == b or a > b is true; and
+    // - transitive, a < b and b < c implies a < c. The same must hold for both ==
+    //   and >.
+    #[test]
+    fn test_ord_position() {
+        assert_eq!(
+            min!(
+                Position::new(1, 2),
+                Position::new(1, 3),
+                Position::new(1, 4),
+                Position::new(1, 2),
+                Position::new(2, 1),
+                Position::new(3, 12),
+                Position::new(4, 4),
+            ),
+            Position::new(1, 2)
+        );
+
+        assert_eq!(
+            max!(
+                Position::new(1, 2),
+                Position::new(1, 3),
+                Position::new(1, 4),
+                Position::new(1, 2),
+                Position::new(2, 1),
+                Position::new(3, 12),
+                Position::new(4, 4),
+            ),
+            Position::new(4, 4)
+        );
+    }
+
+    #[test]
+    fn test_debug() {
+        assert_eq!(format!("{:?}", Position::new(2, 3)), "3:4".to_string());
+        assert_eq!(
+            format!("{:?}", Position::new(usize::max_value(), 3)),
+            "[end]:4".to_string()
+        );
+        assert_eq!(
+            format!("{:?}", Position::new(3, usize::max_value())),
+            "4:[end]".to_string()
+        );
+        assert_eq!(
+            format!(
+                "{:?}",
+                Position::new(usize::max_value(), usize::max_value())
+            ),
+            "[end]:[end]".to_string()
+        );
     }
 }
