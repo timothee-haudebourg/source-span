@@ -1,15 +1,12 @@
-extern crate utf8_decode;
-extern crate source_span;
-
+use source_span::Span;
 use std::fs::File;
 use std::io::Read;
 use utf8_decode::UnsafeDecoder;
-use source_span::Span;
 
 #[derive(Clone, Default)]
 pub struct Token {
     string: String,
-    span: Span
+    span: Span,
 }
 
 #[derive(PartialEq)]
@@ -17,7 +14,7 @@ pub enum Kind {
     Space,
     Separator,
     Alphabetic,
-    Numeric
+    Numeric,
 }
 
 fn main() -> std::io::Result<()> {
@@ -50,7 +47,8 @@ fn main() -> std::io::Result<()> {
 
             // reset current token.
             current.string.clear();
-            current.span.clear(); // the span here is moved to the end of itself.
+            current.span.clear(); // the span here is moved to the end of
+                                  // itself.
         }
 
         if new_kind != Kind::Space {
