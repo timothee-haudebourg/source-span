@@ -192,7 +192,7 @@ impl Span {
     ///
     /// It is at least one, even if the span is empty.
     pub fn line_count(&self) -> usize {
-        self.end.line - self.start.line + 1
+        self.last.line - self.start.line + 1
     }
 
     /// Checks if the span includes the given line.
