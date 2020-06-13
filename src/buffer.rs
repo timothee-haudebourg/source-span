@@ -2,11 +2,12 @@ use std::cell::RefCell;
 
 use crate::{Metrics, Position, Span};
 
-/// Lazy string buffer that fills up on demand.
+/// Lazy string buffer that fills up on demand, can be iterated and indexed by
+/// character position.
 ///
 /// The `SourceBuffer` wraps aroung a `char` iterator. It can be itself used as
-/// a `char` iterator, or as a `SourceBuffer` to access an arbitrary fragment of the
-/// input source stream.
+/// a `char` iterator, or as a `SourceBuffer` to access an arbitrary fragment of
+/// the input source stream.
 pub struct SourceBuffer<E, I: Iterator<Item = Result<char, E>>, M: Metrics> {
 	p: RefCell<Inner<E, I>>,
 
@@ -72,9 +73,9 @@ impl<E, I: Iterator<Item = Result<char, E>>> Inner<E, I> {
 	/// positions, if the source stream ends before the given position, or
 	/// if the line at the given position is shorter than the given position
 	/// column.
-	fn index_at<M: Metrics>(&mut self, pos: Position, metrics: &M) -> Option<Result<usize, E>> {
+	fn index_at<M: Metrics>(&mut self, pos: Position, metrics: &M) -> Result<Option<usize>, E> {
 		if pos < self.span.start() {
-			None
+			Ok(None)
 		} else {
 			while pos >= self.span.end() && self.read_line(metrics) {}
 
@@ -82,8 +83,8 @@ impl<E, I: Iterator<Item = Result<char, E>>> Inner<E, I> {
 				let mut error = None;
 				std::mem::swap(&mut error, &mut self.error);
 				match error {
-					Some(e) => Some(Err(e)),
-					None => None,
+					Some(e) => Err(e),
+					None => Ok(None),
 				}
 			} else {
 				// line index relative to the first line of the buffer.
@@ -100,10 +101,10 @@ impl<E, I: Iterator<Item = Result<char, E>>> Inner<E, I> {
 
 				if cursor == pos {
 					// found it!
-					Some(Ok(i))
+					Ok(Some(i))
 				} else {
 					// the position does not exist in the buffer.
-					None
+					Ok(None)
 				}
 			}
 		}
@@ -115,18 +116,18 @@ impl<E, I: Iterator<Item = Result<char, E>>> Inner<E, I> {
 	/// stream will be read until the buffer span includes the given
 	/// position. Returns `None` if the source stream ends before the given
 	/// position.
-	fn get<M: Metrics>(&mut self, i: usize, metrics: &M) -> Option<Result<char, E>> {
+	fn get<M: Metrics>(&mut self, i: usize, metrics: &M) -> Result<Option<char>, E> {
 		while i >= self.data.len() && self.read_line(metrics) {}
 
 		if i >= self.data.len() {
 			let mut error = None;
 			std::mem::swap(&mut error, &mut self.error);
 			match error {
-				Some(e) => Some(Err(e)),
-				None => None,
+				Some(e) => Err(e),
+				None => Ok(None),
 			}
 		} else {
-			Some(Ok(self.data[i]))
+			Ok(Some(self.data[i]))
 		}
 	}
 }
@@ -161,24 +162,22 @@ impl<E, I: Iterator<Item = Result<char, E>>, M: Metrics> SourceBuffer<E, I, M> {
 	/// positions, if the source stream ends before the given position, or
 	/// if the line at the given position is shorter than the given position
 	/// column.
-	pub fn index_at(&self, pos: Position) -> Option<Result<usize, E>> {
+	pub fn index_at(&self, pos: Position) -> Result<Option<usize>, E> {
 		self.p.borrow_mut().index_at(pos, &self.metrics)
 	}
 
 	/// Get the char at the given position if it is in the buffer.
-	/// If it is not in the buffer but after the buffered content, the input
-	/// stream will be read until the buffer span includes the given
-	/// position.
+	/// If it is not in the buffer yet, the input stream will be pulled until
+	/// the buffer span includes the given position.
 	///
-	/// Returns `None` if the given position if previous to the buffer start
-	/// positions, if the source stream ends before the given position, or
-	/// if the line at the given position is shorter than the given position
-	/// column.
-	pub fn at(&self, pos: Position) -> Option<Result<char, E>> {
+	/// Returns `None` if the given position is out of range, if the source
+	/// stream ends before the given position, or if the line at the given
+	/// position is shorter than the given position column.
+	pub fn at(&self, pos: Position) -> Result<Option<char>, E> {
 		match self.index_at(pos) {
-			Some(Ok(i)) => self.p.borrow_mut().get(i, &self.metrics),
-			Some(Err(e)) => Some(Err(e)),
-			None => None,
+			Ok(Some(i)) => self.p.borrow_mut().get(i, &self.metrics),
+			Ok(None) => Ok(None),
+			Err(e) => Err(e)
 		}
 	}
 
@@ -188,7 +187,7 @@ impl<E, I: Iterator<Item = Result<char, E>>, M: Metrics> SourceBuffer<E, I, M> {
 	/// stream will be read until the buffer span includes the given
 	/// position. Returns `None` if the source stream ends before the given
 	/// position.
-	fn get(&self, i: usize) -> Option<Result<char, E>> { self.p.borrow_mut().get(i, &self.metrics) }
+	pub fn get(&self, i: usize) -> Result<Option<char>, E> { self.p.borrow_mut().get(i, &self.metrics) }
 
 	/// Returns an iterator through the characters of the buffer from the
 	/// begining of it.
@@ -217,7 +216,7 @@ impl<E, I: Iterator<Item = Result<char, E>>, M: Metrics> SourceBuffer<E, I, M> {
 
 		Iter {
 			buffer: self,
-			i: self.index_at(pos),
+			i: self.index_at(pos).transpose(),
 			pos,
 			end: Position::end(),
 		}
@@ -236,7 +235,7 @@ impl<E, I: Iterator<Item = Result<char, E>>, M: Metrics> SourceBuffer<E, I, M> {
 
 		Iter {
 			buffer: self,
-			i: self.index_at(pos),
+			i: self.index_at(pos).transpose(),
 			pos,
 			end: span.end(),
 		}
@@ -246,8 +245,8 @@ impl<E, I: Iterator<Item = Result<char, E>>, M: Metrics> SourceBuffer<E, I, M> {
 /// Iterator over the characters of a [`SourceBuffer`].
 ///
 /// This iterator is created using the [`SourceBuffer::iter`] method or the
-/// [`SourceBuffer::iter_from`] method. When it reaches the end of the buffer, the
-/// buffer will start reading from the source stream until the stream itself
+/// [`SourceBuffer::iter_from`] method. When it reaches the end of the buffer,
+/// the buffer will start reading from the source stream until the stream itself
 /// return `None`.
 pub struct Iter<'b, E, I: 'b + Iterator<Item = Result<char, E>>, M: Metrics> {
 	buffer: &'b SourceBuffer<E, I, M>,
@@ -276,17 +275,15 @@ impl<'b, E, I: 'b + Iterator<Item = Result<char, E>>, M: Metrics> Iterator for I
 			None
 		} else {
 			match &mut self.i {
-				Some(Ok(ref mut i)) => {
-					match self.buffer.get(*i) {
-						Some(Ok(c)) => {
-							self.pos = self.pos.next(c, self.buffer.metrics());
-							*i += 1;
-							Some(Ok(c))
-						}
-						Some(Err(e)) => Some(Err(e)),
-						None => None,
+				Some(Ok(ref mut i)) => match self.buffer.get(*i) {
+					Ok(Some(c)) => {
+						self.pos = self.pos.next(c, self.buffer.metrics());
+						*i += 1;
+						Some(Ok(c))
 					}
-				}
+					Ok(None) => None,
+					Err(e) => Some(Err(e)),
+				},
 				None => None,
 				ref mut i => {
 					let mut new_i = None;

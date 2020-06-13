@@ -22,6 +22,8 @@ use crate::Span;
 ///
 /// This is a simple wrapper around data that can be located in a source file.
 /// It is useful to wrap abstract syntax tree nodes.
+///
+/// It derefs into the inner value.
 pub struct Loc<T: ?Sized> {
 	span: Span,
 	value: T
@@ -42,12 +44,12 @@ impl<T: ?Sized> Loc<T> {
 	}
 
 	/// Unwrap the data.
-	pub fn into_inner(self) -> T {
+	pub fn into_inner(self) -> T where T: Sized {
 		self.value
 	}
 
 	/// Break the wrapper into the value and its location.
-	pub fn into_raw_parts(self) -> (T, Span) {
+	pub fn into_raw_parts(self) -> (T, Span) where T: Sized {
 		(self.value, self.span)
 	}
 }

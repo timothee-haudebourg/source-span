@@ -1,13 +1,123 @@
+//! This crate provides utilities to locate characters and ranges of characters
+//! (spans) in a source file. It also provides ways to print fragments of the
+//! source file with span informations, hints, errors, warning and notes,
+//! just like the `rustc` compiler.
+//!
+//! ## Basic usage
+//!
+//! This crate is designed as an incremental parsing utility.
+//! Its primary function is to keep track of the line and column position of
+//! each character in a character stream:
+//! ```rust
+//! use source_span::Position;
+//!
+//! let metrics = &source_span::DEFAULT_METRICS; // characters metrics
+//! let mut pos = Position::new(0, 0);
+//! let str = "Hello\nWorld!";
+//!
+//! for c in str.chars() {
+//! 	// `pos` holds the position (line, column) of
+//! 	// the current character at all points.
+//! 	pos.shift(c, metrics)
+//! }
+//! ```
+//!
+//! Using the `Span` type, it is also possible to build ranges of characters.
+//!
+//! ```rust
+//! # use source_span::{Position, Span};
+//! # let metrics = source_span::DEFAULT_METRICS;
+//! let mut chars = "1 + (2 * 2) / 3".chars();
+//! let mut pos = Position::new(0, 0);
+//! while let Some(c) = chars.next() {
+//! 	if c == '(' {
+//! 		break
+//! 	}
+//!
+//! 	pos.shift(c, &metrics)
+//! }
+//!
+//! let mut span: Span = pos.into();
+//!
+//! while let Some(c) = chars.next() {
+//! 	span.push(c, &metrics);
+//!
+//! 	if c == ')' {
+//! 		break
+//! 	}
+//! }
+//!
+//! // `span` now holds the beginning and end position of the `"(2 * 2)"` slice.
+//! ```
+//! ## SourceBuffer
+//!
+//! This crate provides a simple `SourceBuffer` buffer
+//! to index a character stream by character position.
+//!
+//! ```rust
+//! # use std::io::Read;
+//! use std::fs::File;
+//! use source_span::{DEFAULT_METRICS, Position, SourceBuffer};
+//!
+//! let file = File::open("examples/fib.txt").unwrap();
+//! let chars = utf8_decode::UnsafeDecoder::new(file.bytes());
+//! let metrics = DEFAULT_METRICS;
+//! let buffer = SourceBuffer::new(chars, Position::default(), metrics);
+//!
+//! buffer.at(Position::new(4, 2)); // get the character at line 4, column 2.
+//! ```
+//!
+//! The `SourceBuffer` type works as a wrapper around a character iterator.
+//! It is lazy: new characters are pulled from the wrapped iterator and put in
+//! the buffer only when needed.
+//! It can be used to access characters at a specific cursor position (as seen
+//! above) or iterate a slice of the text using a `Span`:
+//!
+//! ```rust
+//! # use std::io::Read;
+//! # use std::fs::File;
+//! # use source_span::{DEFAULT_METRICS, Position, SourceBuffer};
+//! # let file = File::open("examples/fib.txt").unwrap();
+//! # let chars = utf8_decode::UnsafeDecoder::new(file.bytes());
+//! # let metrics = DEFAULT_METRICS;
+//! # let buffer = SourceBuffer::new(chars, Position::default(), metrics);
+//! # let span = buffer.span();
+//! for c in buffer.iter_span(span) {
+//!     // do something.
+//! }
+//! ```
+//!
+//! ## Formatting
+//!
+//! This crate also provides a way to format decorated text, highlighting
+//! portions of the source text using ASCII art.
+//! It can be used to produce outputs similar as the following:
+//!
+//! ```txt
+//! 1 |   fn main() {
+//!   |  ___________^
+//! 2 | |     println!("Hello World!")
+//!   | |              ^^^^^^^^^^^^^^ a string
+//! 3 | | }
+//!   | |_^ a block
+//! ```
+//!
+//! Each highlight is described by a span, can be associated to a label and
+//! drawn with a specific style (defining what characters and color to use to
+//! draw the lines).
+
 #![allow(clippy::needless_doctest_main)]
 #![warn(clippy::nursery, clippy::must_use_candidate, clippy::pedantic)]
 use std::cmp::{Ord, Ordering, PartialOrd};
 
 mod buffer;
 pub mod fmt;
+mod loc;
 mod metrics;
 mod position;
 
 pub use buffer::SourceBuffer;
+pub use loc::Loc;
 pub use metrics::*;
 pub use position::Position;
 
@@ -42,37 +152,38 @@ pub use position::Position;
 /// stream.
 ///
 /// ```rust
-/// use source_span::Span;
+/// use source_span::{Span, DEFAULT_METRICS};
 ///
 /// #[derive(Clone, Default)]
 /// pub struct Token {
 /// 	string: String,
 /// 	span: Span,
-/// 	}
+/// }
 ///
 /// let string = "This is an example String.".to_string();
 /// let mut tokens = Vec::new();
 /// let mut current = Token::default();
+/// let metrics = &DEFAULT_METRICS;
 ///
 /// for c in string.chars() {
 /// 	if c.is_whitespace() {
 /// 		// save the current token.
 /// 		if !current.string.is_empty() {
 /// 			tokens.push(current.clone());
-/// 			}
+/// 		}
 ///
 /// 		// reset current token.
 /// 		current.string.clear();
 /// 		current.span.clear(); // the span here is moved to the end of itself.
 /// 	} else {
 /// 		current.string.push(c);
-/// 		current.span.push(c);
-/// 		}
+/// 		current.span.push(c, metrics);
 /// 	}
+/// }
 ///
 /// if !current.string.is_empty() {
 /// 	tokens.push(current);
-/// 	}
+/// }
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Span {
@@ -138,7 +249,7 @@ impl Span {
 		Span {
 			start: Position::new(0, 0),
 			last,
-			end
+			end,
 		}
 	}
 

@@ -1,7 +1,7 @@
 use crate::Metrics;
 use std::fmt;
 
-/// Position in a source file.
+/// Position in a source file (line and column).
 ///
 /// This holds the line and column position of a character in a source file.
 /// Some operations are available to move position in a file. In partular, the
@@ -104,7 +104,7 @@ impl Position {
 	/// ## Full-width characters
 	///
 	/// Note that, as for now, double-width characters of full-width characters are *not*
-	/// supported by the [`DefaultMetrics`].
+	/// supported by the [`DefaultMetrics`](`crate::DefaultMetrics`).
 	/// They will move the cursor by only one column as any other
 	/// regular-width character. You are welcome to contribute to handle
 	/// them.

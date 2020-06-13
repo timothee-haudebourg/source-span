@@ -1,6 +1,6 @@
 use source_span::{
 	fmt::{Color, Formatter, Style},
-	Metrics, Position, Span,
+	Position, Span,
 };
 use std::fs::File;
 use std::io::Read;
@@ -26,7 +26,7 @@ fn main() -> std::io::Result<()> {
 	let metrics = source_span::DEFAULT_METRICS;
 	let buffer = source_span::SourceBuffer::new(chars, Position::default(), metrics);
 
-	let mut fmt = Formatter::with_color(Color::Blue);
+	let mut fmt = Formatter::with_margin_color(Color::Blue);
 
 	let mut tokens = Vec::new();
 	let mut current = Token::default();

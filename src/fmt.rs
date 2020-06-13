@@ -1,66 +1,69 @@
-//! Source code formatter with span highlights and notes.
+//! Source text formatter with span highlights and notes.
 //!
-//! Here are the kind of things you can produce with the [`Formatter`](fmt::Formatter):
-//! <pre><font color="#729FCF"><b>01 |     </b></font>pub fn fibonacci(n: i32) -&gt; u64 {
-//!    <font color="#729FCF"><b>|                     ________        </b></font><font color="#EF2929"><b>^</b></font>
-//! <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>|  </b></font><font color="#EF2929"><b>__________________________</b></font><font color="#729FCF"><b>|</b></font><font color="#EF2929"><b>________|</b></font>
-//! <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|                          </b></font><font color="#729FCF"><b>|</b></font>
-//! <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>|                          </b></font><font color="#729FCF"><b>this is a pair of parenthesis</b></font>
-//! <font color="#729FCF"><b>02 | </b></font><font color="#EF2929"><b>|           </b></font>if n &lt; 0 {
-//!    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|  __________________^</b></font>
-//! <font color="#729FCF"><b>03 | </b></font><font color="#EF2929"><b>| |                 </b></font>panic!(&quot;{} is negative!&quot;, n);
-//!    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>^</b></font><font color="#8AE234"><b>&quot;</b></font><font color="#EF2929"><b>^^             </b></font><font color="#8AE234"><b>&quot;   </b></font><font color="#729FCF"><b>^ this is a pair of parenthesis</b></font>
-//! <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>|</b></font><font color="#8AE234"><b>|_</b></font><font color="#EF2929"><b>|</b></font><font color="#8AE234"><b>_____________|   </b></font><font color="#729FCF"><b>|</b></font>
-//! <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>|__</b></font><font color="#EF2929"><b>|</b></font><font color="#729FCF"><b>_____________</b></font><font color="#8AE234"><b>|</b></font><font color="#729FCF"><b>___|</b></font>
-//! <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                          |             </b></font><font color="#8AE234"><b>|</b></font>
-//! <font color="#8AE234"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                          this is a pair of braces</b></font>
-//! <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                                        </b></font><font color="#8AE234"><b>|</b></font>
-//! <font color="#8AE234"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                                        </b></font><font color="#8AE234"><b>this is a string</b></font>
-//! <font color="#729FCF"><b>04 | </b></font><font color="#EF2929"><b>| |         </b></font>} else if n == 0 {
-//!    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |_________^                ^</b></font>
-//! <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|  _________|________________|</b></font>
-//! <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |         |</b></font>
-//! <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |         this is a pair of braces</b></font>
-//! <font color="#729FCF"><b>05 | </b></font><font color="#EF2929"><b>| |                 </b></font>panic!(&quot;zero is not a right argument to fibonacci()!&quot;);
-//!    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>^</b></font><font color="#8AE234"><b>&quot;                                         </b></font><font color="#729FCF"><b>__ </b></font><font color="#8AE234"><b>&quot;</b></font><font color="#729FCF"><b>^ this is a pair of parenthesis</b></font>
-//! <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>|</b></font><font color="#8AE234"><b>|__________________________________________</b></font><font color="#729FCF"><b>|</b></font><font color="#8AE234"><b>_|</b></font><font color="#729FCF"><b>|</b></font>
-//! <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                       </b></font><font color="#729FCF"><b>|___________________________________________|_</b></font><font color="#8AE234"><b>|</b></font><font color="#729FCF"><b>|</b></font>
-//! <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                                                                   </b></font><font color="#729FCF"><b>| </b></font><font color="#8AE234"><b>|</b></font>
-//! <font color="#8AE234"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                                                                   </b></font><font color="#729FCF"><b>this is a pair of parenthesis</b></font>
-//! <font color="#729FCF"><b>   | </b></font><font color="#EF2929"><b>| |                                                                     </b></font><font color="#8AE234"><b>|</b></font>
-//! <font color="#8AE234"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |                                                                     </b></font><font color="#8AE234"><b>this is a string</b></font>
-//! <font color="#729FCF"><b>06 | </b></font><font color="#EF2929"><b>| |         </b></font>} else if n == 1 {
-//!    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |_________^                ^</b></font>
-//! <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|  _________|________________|</b></font>
-//! <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |         |</b></font>
-//! <font color="#EF2929"><b>   </b></font><font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |         this is a pair of braces</b></font>
-//! <font color="#729FCF"><b>07 | </b></font><font color="#EF2929"><b>| |                 </b></font>return 1;
-//! <font color="#729FCF"><b>08 | </b></font><font color="#EF2929"><b>| |         </b></font>}
-//!    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |_________^ this is a pair of braces</b></font>
-//! <font color="#729FCF"><b>09 | </b></font><font color="#EF2929"><b>|   </b></font>
-//! <font color="#729FCF"><b>10 | </b></font><font color="#EF2929"><b>|           </b></font>let mut sum = 0;
-//! <font color="#729FCF"><b>11 | </b></font><font color="#EF2929"><b>|           </b></font>let mut last = 0;
-//! <font color="#729FCF"><b>12 | </b></font><font color="#EF2929"><b>|           </b></font>let mut curr = 1;
-//! <font color="#729FCF"><b>13 | </b></font><font color="#EF2929"><b>|           </b></font>for _i in 1..n {
-//!    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|  ________________________^</b></font>
-//! <font color="#729FCF"><b>14 | </b></font><font color="#EF2929"><b>| |                 </b></font>sum = last + curr;
-//! <font color="#729FCF"><b>15 | </b></font><font color="#EF2929"><b>| |                 </b></font>last = curr;
-//! <font color="#729FCF"><b>16 | </b></font><font color="#EF2929"><b>| |                 </b></font>curr = sum;
-//! <font color="#729FCF"><b>17 | </b></font><font color="#EF2929"><b>| |         </b></font>}
-//!    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>| |_________^ this is a pair of braces</b></font>
-//! <font color="#729FCF"><b>18 | </b></font><font color="#EF2929"><b>|           </b></font>sum
-//! <font color="#729FCF"><b>19 | </b></font><font color="#EF2929"><b>|   </b></font>}
-//!    <font color="#729FCF"><b>| </b></font><font color="#EF2929"><b>|___^ this is a pair of braces</b></font></pre>
+//! Here are the kind of things you can produce with the
+//! [`Formatter`] (without colors):
+//! ```text
+//!  1 | /     pub fn fibonacci(n: i32) -> u64 {
+//!    | |                     ^______^        ^
+//!    | |  __________________________|________|
+//!    | | |                          |
+//!    | | |                          this is a pair of parenthesis
+//!  2 | | |       if n < 0 {
+//!    | | |  ______________^
+//!  3 | | | |         panic!("{} is negative!", n);
+//!    | | | |               ^"^^             "   ^ this is a pair of parenthesis
+//!    | | | |               ||_|_____________|   |
+//!    | | | |               |__|_____________|___|
+//!    | | | |                  |             |
+//!    | | | |                  |             this is a string
+//!    | | | |                  |
+//!    | | | |                  this is a pair of braces
+//!  4 | | | |     } else if n == 0 {
+//!    | | | |_____^                ^
+//!    | | |  _____|________________|
+//!    | | | |     |
+//!    | | | |     this is a pair of braces
+//!  5 | | | |         panic!("zero is not a right argument to fibonacci()!");
+//!    | | | |               ^"                                         ^^ "^ parentheses
+//!    | | | |               ||__________________________________________|_||
+//!    | | | |               |___________________________________________|_||
+//!    | | | |                                                           | |
+//!    | | | |                                                           | this is a string
+//!    | | | |                                                           |
+//!    | | | |                                                           parentheses
+//!  6 | | | |     } else if n == 1 {
+//!    | | | |_____^                ^
+//!    | | |       |                |
+//!    | | |  _____|________________|
+//!    | | | |     |
+//!    | | | |     this is a pair of braces
+//!  7 | | | |         return 1;
+//!  8 | | | |     }
+//!    | | | |_____^ this is a pair of braces
+//!  9 | | |
+//! 10 | | |       let mut sum = 0;
+//! 11 | | |       let mut last = 0;
+//! 12 | | |       let mut curr = 1;
+//! 13 | | |       for _i in 1..n {
+//!    | | |  ____________________^
+//! 14 | | | |         sum = last + curr;
+//! 15 | | | |         last = curr;
+//! 16 | | | |         curr = sum;
+//! 17 | | | |     }
+//!    | | | |_____^ this is a pair of braces
+//! 18 | | |       sum
+//! 19 | | |   }
+//!    | | |___^^ this is the whole program
+//!    | |_____|| what a nice program!
+//!    |       |
+//!    |       this is a pair of braces
+//! 20 |
+//! ```
 
-use std::convert::TryInto;
+use crate::{Metrics, Position, Span};
 use std::fmt;
-use std::fmt::Write;
-use crate::{
-	Position,
-	Span,
-	Metrics
-};
 
+/// Colors used to render the text.
 #[cfg(feature = "colors")]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Color {
@@ -103,17 +106,17 @@ pub type Color = ();
 /// Highlight format description.
 ///
 /// Specifies how the highlight should be rendered:
-///  * What character to use to draw the line under one-lined highlights.
+///  * What character to use to underline highlights.
 /// ```txt
 /// 1 | fn main() {
 /// 2 |     println!("Hello World!")
-///   |              ++++++++++++++ highlighting this string
+///   |              ^++++++++++++^ highlighting this string
 /// 3 | }
 /// ```
-/// In this example, the line character is `+`.
+/// In this example, the underline character is `+`.
 ///
 ///  * What boundary marker character to use to point the first and last
-///    elements of a multi-line highlight.
+///    elements of a highlight.
 /// ```txt
 /// 1 |   fn main() {
 ///   |  ___________^
@@ -121,7 +124,8 @@ pub type Color = ();
 /// 3 | | }
 ///   | |_^ this span covers more than one line
 /// ```
-/// In this example, the boundary marker is `^`. The line character is not used.
+/// In this example, the boundary marker is `^`.
+/// Note that the underline character is not used.
 ///
 /// ## Colors
 ///
@@ -144,8 +148,8 @@ pub enum Style {
 
 	/// Custom highlight format.
 	///
-	/// Specifies the line character, the boundary marker and the color (if the
-	/// `colors` feature is enabled) used to render the highlight.
+	/// Specifies the underline character, the boundary marker and the color (if
+	/// the `colors` feature is enabled) used to render the highlight.
 	Custom(char, char, Color),
 }
 
@@ -157,20 +161,20 @@ impl Style {
 	/// of the span when relevant.
 	#[must_use]
 	#[cfg(not(feature = "colors"))]
-	pub const fn new(line: char, marker: char) -> Self { Self::Custom(line, marker, ()) }
+	pub const fn new(underline: char, marker: char) -> Self { Self::Custom(underline, marker, ()) }
 
 	/// Create a new custom highlight style.
 	///
-	/// The `line` character is user to draw the line under the span elements.
-	/// The `marker` character is used to point to the first and last elements
-	/// of the span when relevant.
+	/// The `line` character is user to draw the line under the highlighted
+	/// sections. The `marker` character is used to point to the first and last
+	/// elements of the section when relevant.
 	#[must_use]
 	#[cfg(feature = "colors")]
 	pub const fn new(line: char, marker: char, color: Color) -> Self {
 		Self::Custom(line, marker, color)
 	}
 
-	/// The character used to draw the line under the span elements.
+	/// The character used to underline the highlighted section.
 	#[must_use]
 	pub fn line(&self) -> char {
 		match self {
@@ -210,12 +214,13 @@ impl Style {
 	}
 }
 
-/// Span highlight.
+/// Text highlight.
 ///
-/// Used to define what should be highlighted in the text formatted with the
-/// [`Formatter`]. Given a span a label and a style, the formatter will add an
-/// line under the elements of the highlight span, along with the label (if
-/// any).
+/// Defines what should be highlighted in the text formatted with the
+/// [`Formatter`].
+/// A highlight is composed of a span a label and a style.
+/// The formatter will underline the text in the given span and draw the label's
+/// text on its side, with the given style.
 ///
 /// ```txt
 /// 1 | fn main() {
@@ -223,10 +228,11 @@ impl Style {
 ///   |              ^^^^^^^^^^^^^^ highlighting this string
 /// 3 | }
 /// ```
-/// # Multiline spans
+/// # Highlight spanning multiple lines
 ///
-/// The highlight span can cover multiple lines. In that case, only the first
-/// and last elements will be underlined (or pointed).
+/// The highlight span can cover multiple lines.
+/// In that case, only the first and last elements will be decorated using the
+/// style's marker charatcer (`^` in the below example).
 ///
 /// ```txt
 /// 1 |   fn main() {
@@ -283,6 +289,27 @@ pub struct Highlight {
 }
 
 impl Highlight {
+	/// Compute the "margin nesting level" of the highlight.
+	///
+	/// The "margin nesting level" for multiline highlights correspond to the
+	/// horizontal position of the vertical bar in the margin linking the
+	/// begining and the end of the highlight. In the example below, one
+	/// highlight has a margin nesting level of 1 (further in), and the other of
+	/// 2 (further out).
+	///
+	/// ```text
+	///    ___^ ^
+	///  _|_____|
+	/// | |
+	/// | |
+	/// |_|________^   ^
+	///   |____________|
+	/// ```
+	///
+	/// Single line highlights have a margin nesting level of 0.
+	///
+	/// The nesting level is computed relatively to other mapped highlights that
+	/// have a lower precedence.
 	fn margin_nest_level(&self, highlights: &[MappedHighlight]) -> usize {
 		if self.span.line_count() > 1 {
 			let mut level = 2;
@@ -298,13 +325,23 @@ impl Highlight {
 		}
 	}
 
-	fn start_nest_level(&self, highlights: &[MappedHighlight], first_non_whitespace: Option<usize>) -> usize {
-		if self.span.last.line > self.span.start.line && first_non_whitespace.is_some() && first_non_whitespace.unwrap() >= self.span.start.column {
+	fn start_nest_level(
+		&self,
+		highlights: &[MappedHighlight],
+		first_non_whitespace: Option<usize>,
+	) -> usize {
+		if self.span.last.line > self.span.start.line
+			&& first_non_whitespace.is_some()
+			&& first_non_whitespace.unwrap() >= self.span.start.column
+		{
 			0
 		} else {
 			let mut level = 1;
 			for h in highlights {
-				if (self.span.start.line == h.span().start.line || self.span.start.line == h.span().last.line) && (self.span.overlaps(h.span()) || self.span.line_count() > 1) {
+				if (self.span.start.line == h.span().start.line
+					|| self.span.start.line == h.span().last.line)
+					&& (self.span.overlaps(h.span()) || self.span.line_count() > 1)
+				{
 					level = std::cmp::max(level, 1 + h.start_nest_level)
 				}
 			}
@@ -316,7 +353,10 @@ impl Highlight {
 	fn end_nest_level(&self, highlights: &[MappedHighlight]) -> usize {
 		let mut level = 1;
 		for h in highlights {
-			if (self.span.last.line == h.span().start.line || self.span.last.line == h.span().last.line) && self.span.overlaps(h.span()) {
+			if (self.span.last.line == h.span().start.line
+				|| self.span.last.line == h.span().last.line)
+				&& self.span.overlaps(h.span())
+			{
 				level = std::cmp::max(level, 1 + h.end_nest_level)
 			}
 		}
@@ -343,35 +383,133 @@ impl Highlight {
 /// See the [`Highlight`] documentation for more informations.
 pub struct Formatter {
 	highlights: Vec<Highlight>,
-	show_line_numbers: bool,
 	margin_color: Color,
-	use_line_begining_shortcut: bool
+	show_line_numbers: bool,
+	use_line_begining_shortcut: bool,
+	viewbox: Option<usize>,
 }
 
-/// Highlight with some more information about where to draw the vertical line
-/// so it does not colide with other highlights, and chere to draw the label.
+impl Formatter {
+	/// Create a new formatter with no highlights.
+	///
+	/// # Note
+	///
+	/// By default line numbers are shown. You can disable them using the
+	/// [`hide_line_numbers`](Formatter::hide_line_numbers) method.
+	#[must_use]
+	pub fn new() -> Self { Self::default() }
+
+	/// Create a new formatter with no highlights and the specified margin
+	/// color.
+	///
+	/// # Note
+	///
+	/// By default line numbers are shown. You can disable them using the
+	/// [`hide_line_numbers`](Formatter::hide_line_numbers) method.
+	#[must_use]
+	pub const fn with_margin_color(margin_color: Color) -> Self {
+		Self {
+			highlights: Vec::new(),
+			margin_color,
+			viewbox: Some(2),
+			show_line_numbers: true,
+			use_line_begining_shortcut: true,
+		}
+	}
+
+	/// By default, line numbers are shown in a margin in the left side of the
+	/// rendered text, like this:
+	/// ```text
+	/// 1 | fn main() {
+	/// 2 |     println!("Hello World!")
+	///   |              ^^^^^^^^^^^^^^ highlighting this string
+	/// 3 | }
+	/// ```
+	/// The `margin_color` attribute is used to decorate the margin text (blue
+	/// by default). You can use this function to enable or disable this
+	/// functionality. Without line numbers, the previous example will look like
+	/// this:
+	///
+	/// ```text
+	/// fn main() {
+	///     println!("Hello World!")
+	///              ^^^^^^^^^^^^^^ highlighting this string
+	/// }
+	/// ```
+	pub fn set_line_numbers_visible(&mut self, visible: bool) { self.show_line_numbers = visible; }
+
+	/// Show the line numbers (this is the default).
+	pub fn show_line_numbers(&mut self) { self.show_line_numbers = false; }
+
+	/// Hide the line numbers.
+	pub fn hide_line_numbers(&mut self) { self.show_line_numbers = false; }
+
+	/// Set the viewbox (default is 2).
+	///
+	/// The viewbox is used to ommit non-important lines from the render.
+	/// A line is considered important if it is included at the start or end of
+	/// an highlighted span.
+	/// In the below example, lines 1 and 12 are important. With a viewport of
+	/// 2, the two lines around important lines will be visible, and the other
+	/// ommited. In this example, lines 4 to 9 are ommited.
+	///
+	/// ```text
+	///  1 |   fn main() {
+	///    |  __________^
+	///  2 | |     some code;
+	///  3 | |     more code;
+	/// .. | |
+	/// 10 | |     more code;
+	/// 11 | |     more code
+	/// 12 | | }
+	///    | |_^
+	/// 13 |
+	/// 14 |   fn another_function {
+	/// ```
+	/// Here is the same example with a viewbox of 1:
+	/// ```text
+	///  1 |   fn main() {
+	///    |  __________^
+	///  2 | |     some code;
+	/// .. | |
+	/// 11 | |     more code
+	/// 12 | | }
+	///    | |_^
+	/// 13 |
+	/// ```
+	///
+	/// You can disable the viewbox all together by passing `None` to this
+	/// function. In this case, all the lines will be visible.
+	pub fn set_viewbox(&mut self, viewbox: Option<usize>) { self.viewbox = viewbox }
+
+	/// Add a span highlight.
+	pub fn add(&mut self, span: Span, label: Option<String>, style: Style) {
+		self.highlights.push(Highlight { span, label, style });
+		self.highlights.sort_by(|a, b| a.span.cmp(&b.span));
+	}
+}
+
+/// Highlight with some more information about how to draw the lines.
 #[derive(Clone, Copy)]
 struct MappedHighlight<'a> {
 	h: &'a Highlight,
 	margin_nest_level: usize,
 	start_nest_level: usize,
-	end_nest_level: usize
+	end_nest_level: usize,
 }
 
 impl<'a> MappedHighlight<'a> {
-	pub fn span(&self) -> &Span {
-		&self.h.span
-	}
+	pub fn span(&self) -> &Span { &self.h.span }
 
-	pub fn style(&self) -> &Style {
-		&self.h.style
-	}
+	pub fn style(&self) -> &Style { &self.h.style }
 
-	pub fn label(&self) -> Option<&String> {
-		self.h.label.as_ref()
-	}
+	pub fn label(&self) -> Option<&String> { self.h.label.as_ref() }
 
-	fn update_start_nest_level(&mut self, highlights: &[MappedHighlight], first_non_whitespace: Option<usize>) {
+	fn update_start_nest_level(
+		&mut self,
+		highlights: &[MappedHighlight],
+		first_non_whitespace: Option<usize>,
+	) {
 		self.start_nest_level = self.h.start_nest_level(highlights, first_non_whitespace)
 	}
 
@@ -392,14 +530,10 @@ pub enum Char {
 	SpanVertical(Color),
 	SpanHorizontal(Color),
 	SpanMargin(Color),
-	SpanMarginMarker(Color)
+	SpanMarginMarker(Color),
 }
 
 impl Char {
-	const fn label(c: char, color: Color) -> Self { Self::Label(c, color) }
-
-	const fn space() -> Self { Self::Text(' ') }
-
 	fn unwrap(self) -> char {
 		match self {
 			Self::Empty => ' ',
@@ -427,15 +561,7 @@ impl Char {
 			| Self::SpanVertical(color)
 			| Self::SpanHorizontal(color)
 			| Self::SpanMargin(color) => Some(*color),
-			| Self::SpanMarginMarker(color) => Some(*color),
-		}
-	}
-
-	#[allow(clippy::trivially_copy_pass_by_ref)]
-	fn is_label(&self) -> bool {
-		match self {
-			Self::Label(_, _) => true,
-			_ => false
+			Self::SpanMarginMarker(color) => Some(*color),
 		}
 	}
 
@@ -443,7 +569,7 @@ impl Char {
 	fn is_free(&self) -> bool {
 		match self {
 			Self::Empty => true,
-			_ => false
+			_ => false,
 		}
 	}
 
@@ -451,7 +577,7 @@ impl Char {
 	fn is_span_horizontal(&self) -> bool {
 		match self {
 			Self::SpanHorizontal(_) => true,
-			_ => false
+			_ => false,
 		}
 	}
 
@@ -459,7 +585,7 @@ impl Char {
 	fn is_span_margin(&self) -> bool {
 		match self {
 			Self::SpanMargin(_) => true,
-			_ => false
+			_ => false,
 		}
 	}
 }
@@ -468,10 +594,11 @@ impl From<char> for Char {
 	fn from(c: char) -> Self { Self::Text(c) }
 }
 
+/// A 2D character map.
 struct CharMap {
 	data: Vec<Char>,
 	width: usize,
-	height: usize
+	height: usize,
 }
 
 impl CharMap {
@@ -479,7 +606,7 @@ impl CharMap {
 		CharMap {
 			data: vec![Char::Empty],
 			width: 1,
-			height: 1
+			height: 1,
 		}
 	}
 
@@ -487,14 +614,14 @@ impl CharMap {
 		let mut map = CharMap {
 			data: Vec::with_capacity(text.len()),
 			width: 0,
-			height: 0
+			height: 0,
 		};
 
 		let mut pos = Position::new(0, 0);
 		for c in text.chars() {
 			match c {
 				'\n' | '\t' => (),
-				_ => map.set(pos.column, pos.line, Char::Label(c, color))
+				_ => map.set(pos.column, pos.line, Char::Label(c, color)),
 			}
 
 			pos.shift(c, metrics)
@@ -503,15 +630,11 @@ impl CharMap {
 		map
 	}
 
-	fn width(&self) -> usize {
-		self.width
-	}
+	// fn width(&self) -> usize { self.width }
 
-	fn height(&self) -> usize {
-		self.height
-	}
+	fn height(&self) -> usize { self.height }
 
-	fn align<I: Iterator<Item=usize>>(&mut self, width: usize, height: usize, it: I) {
+	fn align<I: Iterator<Item = usize>>(&mut self, width: usize, _height: usize, it: I) {
 		for i in it {
 			let x = i % width;
 			let y = i / width;
@@ -522,13 +645,17 @@ impl CharMap {
 					self.data[i] = self.data[j];
 				} else {
 					let my = self.height - 1;
-					self.data[i] = match (self.get(x, my), self.get(x+1, my)) {
-						(Char::SpanMargin(c), Char::SpanHorizontal(_)) if x == 0 || !self.get(x-1, my).is_span_horizontal() => Char::Empty,
+					self.data[i] = match (self.get(x, my), self.get(x + 1, my)) {
+						(Char::SpanMargin(_), Char::SpanHorizontal(_))
+							if x == 0 || !self.get(x - 1, my).is_span_horizontal() =>
+						{
+							Char::Empty
+						}
 						(Char::SpanMargin(c), _) => Char::SpanMargin(c),
 						(Char::SpanMarginMarker(c), _) => Char::SpanMargin(c),
 						(Char::Empty, Char::SpanHorizontal(c)) => Char::SpanMargin(c),
 						(Char::Margin('|', c), _) => Char::Margin('|', c),
-						_ => Char::Empty
+						_ => Char::Empty,
 					}
 				}
 			} else {
@@ -545,11 +672,11 @@ impl CharMap {
 				self.data.resize(len, Char::Empty);
 			}
 
-			let it = if width < self.width {
+			if width < self.width {
 				self.align(width, height, 0..len);
 			} else {
 				self.align(width, height, (0..len).rev());
-			};
+			}
 
 			if len < self.data.len() {
 				self.data.resize(len, Char::Empty);
@@ -561,7 +688,10 @@ impl CharMap {
 	}
 
 	fn reserve(&mut self, width: usize, height: usize) {
-		self.resize(std::cmp::max(width, self.width), std::cmp::max(height, self.height))
+		self.resize(
+			std::cmp::max(width, self.width),
+			std::cmp::max(height, self.height),
+		)
 	}
 
 	fn get(&self, x: usize, y: usize) -> Char {
@@ -573,7 +703,7 @@ impl CharMap {
 	}
 
 	fn set(&mut self, x: usize, y: usize, c: Char) {
-		self.reserve(x+1, y+1);
+		self.reserve(x + 1, y + 1);
 		self.data[x + y * self.width] = c;
 	}
 
@@ -595,7 +725,7 @@ impl CharMap {
 	}
 
 	fn draw_open_line(&mut self, style: &Style, y: usize, start: usize, end: usize) {
-		self.reserve(end+1, y+1);
+		self.reserve(end + 1, y + 1);
 		for x in start..=end {
 			if x == end {
 				self.draw_marker(style, y, x)
@@ -608,7 +738,7 @@ impl CharMap {
 	}
 
 	fn draw_closed_line(&mut self, style: &Style, y: usize, start: usize, end: usize) {
-		self.reserve(end+1, y+1);
+		self.reserve(end + 1, y + 1);
 		for x in start..=end {
 			if x == start || x == end {
 				self.draw_marker(style, y, x)
@@ -626,10 +756,10 @@ impl CharMap {
 
 	/// Checks if the given rectangle is free in the char map.
 	fn is_rect_free(&self, offset_x: usize, offset_y: usize, width: usize, height: usize) -> bool {
-		for y in offset_y..(offset_y+height) {
-			for x in offset_x..(offset_x+width) {
+		for y in offset_y..(offset_y + height) {
+			for x in offset_x..(offset_x + width) {
 				if !self.get(x, y).is_free() {
-					return false
+					return false;
 				}
 			}
 		}
@@ -638,10 +768,10 @@ impl CharMap {
 	}
 
 	fn draw_charmap(&mut self, offset_x: usize, offset_y: usize, map: &CharMap) {
-		self.reserve(offset_x+map.width, offset_y+map.height);
+		self.reserve(offset_x + map.width, offset_y + map.height);
 		for y in 0..map.height {
 			for x in 0..map.width {
-				self.set(offset_x+x, offset_y+y, map.get(x, y))
+				self.set(offset_x + x, offset_y + y, map.get(x, y))
 			}
 		}
 	}
@@ -658,7 +788,12 @@ impl CharMap {
 			dy = 1;
 		}
 
-		if self.is_rect_free(offset_x-dx, offset_y-dy, map.width+dx+1, map.height+dy+1) {
+		if self.is_rect_free(
+			offset_x - dx,
+			offset_y - dy,
+			map.width + dx + 1,
+			map.height + dy + 1,
+		) {
 			self.draw_charmap(offset_x, offset_y, map);
 			true
 		} else {
@@ -697,6 +832,10 @@ impl fmt::Display for CharMap {
 	}
 }
 
+/// Formatted text.
+///
+/// This is the result of the [`Formatter::render`] function.
+/// It implements [`Display`](`fmt::Display`) and can hence be printted with a simple `printf!`.
 pub struct Formatted(Vec<CharMap>);
 
 impl fmt::Display for Formatted {
@@ -709,34 +848,77 @@ impl fmt::Display for Formatted {
 	}
 }
 
-impl Formatter {
-	/// Create a new formatter with no highlights.
-	///
-	/// # Note
-	///
-	/// By default line numbers are shown. You can disable them using the
-	/// [`hide_line_numbers`](Formatter::hide_line_numbers) method.
-	#[must_use]
-	pub fn new() -> Self { Self::default() }
+/// A set of important lines to render.
+pub enum ImportantLines {
+	All,
+	Lines(Vec<usize>, usize),
+}
 
-	/// Create a new formatter with no highlights and the specified margin
-	/// color.
-	///
-	/// # Note
-	///
-	/// By default line numbers are shown. You can disable them using the
-	/// [`hide_line_numbers`](Formatter::hide_line_numbers) method.
-	#[must_use]
-	pub const fn with_color(margin_color: Color) -> Self {
-		Self {
-			highlights: Vec::new(),
-			show_line_numbers: true,
-			margin_color,
-			use_line_begining_shortcut: true
+impl ImportantLines {
+	fn includes(&self, line: usize) -> bool {
+		match self {
+			ImportantLines::All => true,
+			ImportantLines::Lines(important_lines, viewbox) => important_lines
+				.binary_search_by(|candidate| {
+					use std::cmp::Ordering;
+					if line <= candidate + viewbox
+						&& line >= candidate - std::cmp::min(candidate, viewbox)
+					{
+						Ordering::Equal
+					} else if line <= candidate + viewbox {
+						Ordering::Greater
+					} else {
+						Ordering::Less
+					}
+				})
+				.is_ok(),
+		}
+	}
+}
+
+impl Formatter {
+	fn important_lines(&self) -> ImportantLines {
+		if let Some(viewbox) = self.viewbox {
+			let mut important_lines = Vec::new();
+			for h in &self.highlights {
+				important_lines.push(h.span.start.line);
+				if h.span.start.line != h.span.last.line {
+					important_lines.push(h.span.last.line)
+				}
+			}
+
+			important_lines.sort();
+			ImportantLines::Lines(important_lines, viewbox)
+		} else {
+			ImportantLines::All
 		}
 	}
 
-	pub fn render<E, I: Iterator<Item = Result<char, E>>, M: Metrics>(&self, input: I, span: Span, metrics: &M) -> Result<Formatted, E> {
+	/// Render the given input stream of character.
+	/// The result implements [`Display`](`fmt::Display`) and can then be printed.
+	///
+	/// ```
+	/// # use std::fs::File;
+	/// # use std::io::Read;
+	/// # use source_span::{DEFAULT_METRICS, SourceBuffer, Position};
+	/// # use source_span::fmt::{Color, Style, Formatter};
+	/// let file = File::open("examples/fib.txt").unwrap();
+	/// let chars = utf8_decode::UnsafeDecoder::new(file.bytes());
+	/// let metrics = DEFAULT_METRICS;
+	/// let buffer = SourceBuffer::new(chars, Position::default(), metrics);
+	///
+	/// let mut fmt = Formatter::with_margin_color(Color::Blue);
+	/// fmt.add(buffer.span(), None, Style::Error);
+	///
+	/// let formatted = fmt.render(buffer.iter(), buffer.span(), &metrics).unwrap();
+	/// println!("{}", formatted);
+	/// ```
+	pub fn render<E, I: Iterator<Item = Result<char, E>>, M: Metrics>(
+		&self,
+		input: I,
+		span: Span,
+		metrics: &M,
+	) -> Result<Formatted, E> {
 		let mut mapped_highlights = Vec::with_capacity(self.highlights.len());
 		let mut nest_margin = 0;
 		for h in &self.highlights {
@@ -752,7 +934,7 @@ impl Formatter {
 				h,
 				margin_nest_level,
 				start_nest_level: 0,
-				end_nest_level: 0
+				end_nest_level: 0,
 			});
 		}
 
@@ -768,12 +950,17 @@ impl Formatter {
 
 		let margin = line_number_margin + nest_margin;
 
-		let mut lines = vec![CharMap::new()];
 		let mut pos = span.start();
+		let mut lines = vec![CharMap::new()];
+		let important_lines = self.important_lines();
+		let mut is_important_line = important_lines.includes(pos.line);
+		if is_important_line {
+			lines.push(CharMap::new())
+		}
 		let mut first_non_whitespace = None;
 		for c in input {
 			if pos > span.last() {
-				break
+				break;
 			}
 
 			let c = c?;
@@ -781,29 +968,127 @@ impl Formatter {
 
 			match c {
 				'\n' => {
-					self.draw_line_highlights(pos.line, lines.last_mut().unwrap(), margin, &mut mapped_highlights, metrics, first_non_whitespace);
+					if is_important_line {
+						let line_charmap = lines.last_mut().unwrap();
+						self.draw_line_number(Some(pos.line), line_charmap, line_number_margin);
+						self.draw_line_highlights(
+							pos.line,
+							line_charmap,
+							margin,
+							&mut mapped_highlights,
+							metrics,
+							first_non_whitespace,
+						);
+					}
 					first_non_whitespace = None;
-					lines.push(CharMap::new())
-				},
-				'\t' => (),
-				_ => {
-					if self.use_line_begining_shortcut && first_non_whitespace.is_none() && !c.is_whitespace() && !c.is_control() {
-						first_non_whitespace = Some(pos.column)
+					if important_lines.includes(pos.line + 1) {
+						if !is_important_line && !lines.is_empty() {
+							let mut viewbox_charmap = CharMap::new();
+							self.draw_line_number(None, &mut viewbox_charmap, line_number_margin);
+							self.draw_line_highlights(
+								pos.line,
+								&mut viewbox_charmap,
+								margin,
+								&mut mapped_highlights,
+								metrics,
+								None,
+							);
+							lines.push(viewbox_charmap)
+						}
+						is_important_line = true
+					} else {
+						is_important_line = false
 					}
 
-					lines.last_mut().unwrap().set(x, 0, Char::Text(c))
+					if is_important_line {
+						lines.push(CharMap::new())
+					}
+				}
+				'\t' => (),
+				_ => {
+					if is_important_line {
+						if self.use_line_begining_shortcut
+							&& first_non_whitespace.is_none()
+							&& !c.is_whitespace() && !c.is_control()
+						{
+							first_non_whitespace = Some(pos.column)
+						}
+
+						lines.last_mut().unwrap().set(x, 0, Char::Text(c))
+					}
 				}
 			}
 
 			pos.shift(c, metrics)
 		}
 
-		self.draw_line_highlights(pos.line, lines.last_mut().unwrap(), margin, &mut mapped_highlights, metrics, first_non_whitespace);
+		if is_important_line {
+			let line_charmap = lines.last_mut().unwrap();
+			self.draw_line_number(Some(pos.line), line_charmap, line_number_margin);
+			self.draw_line_highlights(
+				pos.line,
+				line_charmap,
+				margin,
+				&mut mapped_highlights,
+				metrics,
+				first_non_whitespace,
+			);
+		}
 
 		Ok(Formatted(lines))
 	}
 
-	fn draw_line_highlights<M: Metrics>(&self, line: usize, charmap: &mut CharMap, margin: usize, highlights: &mut [MappedHighlight], metrics: &M, first_non_whitespace: Option<usize>) {
+	fn draw_line_number(
+		&self,
+		line: Option<usize>,
+		charmap: &mut CharMap,
+		line_number_margin: usize,
+	) {
+		if line_number_margin > 0 {
+			charmap.set(
+				line_number_margin - 2,
+				0,
+				Char::Margin('|', self.margin_color),
+			);
+			match line {
+				Some(mut line) => {
+					let mut x = line_number_margin - 3;
+					line += 1;
+
+					while line > 0 {
+						x -= 1;
+						let d = line % 10;
+
+						charmap.set(
+							x,
+							0,
+							Char::Margin(
+								std::char::from_digit(d as u32, 10).unwrap(),
+								self.margin_color,
+							),
+						);
+
+						line /= 10;
+					}
+				}
+				None => {
+					for x in 0..(line_number_margin - 3) {
+						charmap.set(x, 0, Char::Margin('.', self.margin_color))
+					}
+				}
+			}
+		}
+	}
+
+	fn draw_line_highlights<M: Metrics>(
+		&self,
+		line: usize,
+		charmap: &mut CharMap,
+		margin: usize,
+		highlights: &mut [MappedHighlight],
+		metrics: &M,
+		first_non_whitespace: Option<usize>,
+	) {
 		// span lines
 		for i in 0..highlights.len() {
 			let mut h = highlights[i];
@@ -813,20 +1098,42 @@ impl Formatter {
 				h.update_start_nest_level(&highlights[0..i], first_non_whitespace);
 
 				if h.span().last.line == line {
-					charmap.draw_closed_line(h.style(), h.start_nest_level, margin + h.span().start.column, margin + h.span().last.column)
+					charmap.draw_closed_line(
+						h.style(),
+						h.start_nest_level,
+						margin + h.span().start.column,
+						margin + h.span().last.column,
+					)
 				} else {
-					if first_non_whitespace.is_some() && h.span().start.column <= first_non_whitespace.unwrap() {
+					if first_non_whitespace.is_some()
+						&& h.span().start.column <= first_non_whitespace.unwrap()
+					{
 						// line begining shortcut
 						shortcut = true;
-						charmap.set(margin - h.margin_nest_level, 0, Char::SpanMarginMarker(h.style().color()))
+						charmap.set(
+							margin - h.margin_nest_level,
+							0,
+							Char::SpanMarginMarker(h.style().color()),
+						)
 					} else {
-						charmap.draw_open_line(h.style(), h.start_nest_level, margin - h.margin_nest_level + 1, margin + h.span().start.column)
+						charmap.draw_open_line(
+							h.style(),
+							h.start_nest_level,
+							margin - h.margin_nest_level + 1,
+							margin + h.span().start.column,
+						)
 					}
 				}
 			} else if h.span().last.line == line {
 				h.update_end_nest_level(&highlights[0..i]);
-				charmap.draw_open_line(h.style(), h.end_nest_level, margin - h.margin_nest_level + 1, margin + h.span().last.column);
-				// charmap.set(margin - h.margin_nest_level, h.end_nest_level, Char::SpanMargin(h.style().color()))
+				charmap.draw_open_line(
+					h.style(),
+					h.end_nest_level,
+					margin - h.margin_nest_level + 1,
+					margin + h.span().last.column,
+				);
+				// charmap.set(margin - h.margin_nest_level, h.end_nest_level,
+				// Char::SpanMargin(h.style().color()))
 			}
 
 			if shortcut || (h.span().start.line < line && h.span().last.line >= line) {
@@ -837,11 +1144,7 @@ impl Formatter {
 				};
 
 				let x = margin - h.margin_nest_level;
-				let offset_y = if shortcut {
-					1
-				} else {
-					0
-				};
+				let offset_y = if shortcut { 1 } else { 0 };
 
 				for y in offset_y..=end {
 					charmap.set(x, y, Char::SpanMargin(h.style().color()))
@@ -856,7 +1159,7 @@ impl Formatter {
 			if h.span().last.line == line {
 				if let Some(label) = h.label() {
 					let label_charmap = CharMap::from_label(&label, h.style().color(), metrics);
-					let mut x = margin + h.span().last.column;
+					let x = margin + h.span().last.column;
 					let mut y = 1;
 					if !charmap.draw_charmap_if_free(x + 2, y, &label_charmap) {
 						y += 2;
@@ -872,21 +1175,16 @@ impl Formatter {
 			}
 		}
 	}
-
-	/// Add a span highlight.
-	pub fn add(&mut self, span: Span, label: Option<String>, style: Style) {
-		self.highlights.push(Highlight { span, label, style });
-		self.highlights.sort_by(|a, b| a.span.cmp(&b.span));
-	}
 }
 
 impl Default for Formatter {
 	fn default() -> Formatter {
 		Formatter {
 			highlights: Vec::new(),
-			show_line_numbers: true,
 			margin_color: Color::Blue,
-			use_line_begining_shortcut: true
+			viewbox: Some(2),
+			show_line_numbers: true,
+			use_line_begining_shortcut: true,
 		}
 	}
 }

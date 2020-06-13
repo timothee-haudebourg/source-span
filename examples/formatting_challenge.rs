@@ -1,10 +1,7 @@
 use source_span::{
 	fmt::{Color, Formatter, Style},
-	Metrics, Position, Span,
+	Position, Span,
 };
-use std::fs::File;
-use std::io::Read;
-use utf8_decode::UnsafeDecoder;
 
 #[derive(Clone, Default)]
 pub struct Token {
@@ -38,7 +35,7 @@ fn safe_char(c: char) -> Result<char, ()> {
 fn main() {
 	let metrics = source_span::DEFAULT_METRICS;
 	let span = Span::of_string(SOURCE, &metrics);
-	let mut fmt = Formatter::with_color(Color::Blue);
+	let mut fmt = Formatter::with_margin_color(Color::Blue);
 
 	fmt.add(span, Some("label Z".to_string()), Style::Error);
 

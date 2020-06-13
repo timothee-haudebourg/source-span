@@ -1,22 +1,21 @@
 [package]
 name = "source-span"
-version = "1.4.0"
+version = "2.0.0"
 authors = ["Timothée Haudebourg <author@haudebourg.net>"]
 edition = "2018"
 categories = ["parsing"]
-keywords = ["file", "span", "format", "display"]
-description = "Source file fragment location and display utilities."
+keywords = ["source", "code", "map", "span"]
+description = "Source code mapping and display utilities."
 repository = "https://github.com/timothee-haudebourg/source-span"
 documentation = "https://docs.rs/source-span"
 license = "MIT/Apache-2.0"
 
 [features]
 default = ["colors"]
-
 colors = ["termion"]
 
 [dependencies]
-termion = { version = "1.5.3", optional = true }
+termion = { version = "1.5", optional = true }
 
 [dev-dependencies]
-utf8-decode = "1.0.0"
+utf8-decode = "1.0"
