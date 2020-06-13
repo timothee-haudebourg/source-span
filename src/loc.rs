@@ -15,6 +15,7 @@ use std::cmp::{
 	PartialOrd,
 	Ordering
 };
+use std::convert::TryInto;
 use std::fmt;
 use crate::Span;
 
@@ -41,6 +42,22 @@ impl<T: ?Sized> Loc<T> {
 	/// Get the span location of the data.
 	pub fn span(&self) -> Span {
 		self.span
+	}
+
+	/// Convert the inner value.
+	pub fn inner_into<U>(self) -> Loc<U> where T: Into<U> {
+		Loc {
+			span: self.span,
+			value: self.value.into()
+		}
+	}
+
+	/// Try to convert the inner value.
+	pub fn inner_try_into<U>(self) -> Result<Loc<U>, <T as TryInto<U>>::Error> where T: TryInto<U> {
+		Ok(Loc {
+			span: self.span,
+			value: self.value.try_into()?
+		})
 	}
 
 	/// Unwrap the data.

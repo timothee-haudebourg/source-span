@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2020-06-13
+
+### Added
+- New functions `inner_into` and `inner_try_into` converting inner values in `Loc`.
+
+## [2.0.1] - 2020-06-13
+
+### Added
+- Reference to the `README.md` in `Cargo.toml`
+
 ## [2.0.0] - 2020-06-13
 
 ### Added
