@@ -1,6 +1,6 @@
 [package]
 name = "source-span"
-version = "2.0.0"
+version = "2.0.1"
 authors = ["Timothée Haudebourg <author@haudebourg.net>"]
 edition = "2018"
 categories = ["parsing"]
@@ -9,6 +9,7 @@ description = "Source code mapping and display utilities."
 repository = "https://github.com/timothee-haudebourg/source-span"
 documentation = "https://docs.rs/source-span"
 license = "MIT/Apache-2.0"
+readme = "README.md"
 
 [features]
 default = ["colors"]
