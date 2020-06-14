@@ -894,6 +894,25 @@ impl Formatter {
 		}
 	}
 
+	fn line_number_margin(&self, span: &Span) -> usize {
+		if self.show_line_numbers {
+			let last_line = match self.viewbox {
+				Some(viewbox) => {
+					if let Some(last_highlight) = self.highlights.last() {
+						last_highlight.span.last().line + viewbox
+					} else {
+						return 0
+					}
+				},
+				None => span.last().line
+			};
+
+			(((last_line + 1) as f32).log10() as usize) + 4
+		} else {
+			0
+		}
+	}
+
 	/// Render the given input stream of character.
 	/// The result implements [`Display`](`fmt::Display`) and can then be printed.
 	///
@@ -938,16 +957,7 @@ impl Formatter {
 			});
 		}
 
-		let line_number_margin = if let Some(last_highlight) = self.highlights.last() {
-			if self.show_line_numbers {
-				(((last_highlight.span.last().line + 1) as f32).log10() as usize) + 4
-			} else {
-				0
-			}
-		} else {
-			0
-		};
-
+		let line_number_margin = self.line_number_margin(&span);
 		let margin = line_number_margin + nest_margin;
 
 		let mut pos = span.start();
