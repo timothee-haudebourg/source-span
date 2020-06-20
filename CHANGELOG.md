@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2020-06-20
+
+### Added
+- New `Layout` type to index UTF8-string by cursor positions.
+
+### Changed
+- Moved `SourceBuffer` into a `lazy` submodule of `buffer`.
+  This should not change anything for the user.
+
 ## [2.1.0] - 2020-06-13
 
 ### Added

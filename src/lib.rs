@@ -115,11 +115,13 @@ pub mod fmt;
 mod loc;
 mod metrics;
 mod position;
+mod layout;
 
 pub use buffer::SourceBuffer;
 pub use loc::Loc;
 pub use metrics::*;
 pub use position::Position;
+pub use layout::*;
 
 /// Span in a source file.
 ///
