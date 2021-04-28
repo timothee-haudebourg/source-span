@@ -804,6 +804,7 @@ impl CharMap {
 
 impl fmt::Display for CharMap {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		#[cfg(feature = "colors")]
 		let mut current_color = None;
 		for y in 0..self.height {
 			for x in 0..self.width {
@@ -1191,6 +1192,9 @@ impl Default for Formatter {
 	fn default() -> Formatter {
 		Formatter {
 			highlights: Vec::new(),
+			#[cfg(not(feature = "colors"))]
+			margin_color: (),
+			#[cfg(feature = "colors")]
 			margin_color: Color::Blue,
 			viewbox: Some(2),
 			show_line_numbers: true,
