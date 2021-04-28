@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] - 2020-04-28
+
+### Changed
+- Fix compilation failure without `colors` feature.
+- Change many functions into `const fn`.
+- Do not use `clippy::pedantic`.
+
 ## [2.2.0] - 2020-06-20
 
 ### Added

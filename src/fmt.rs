@@ -499,11 +499,11 @@ struct MappedHighlight<'a> {
 }
 
 impl<'a> MappedHighlight<'a> {
-	pub fn span(&self) -> &Span { &self.h.span }
+	pub const fn span(&self) -> &Span { &self.h.span }
 
-	pub fn style(&self) -> &Style { &self.h.style }
+	pub const fn style(&self) -> &Style { &self.h.style }
 
-	pub fn label(&self) -> Option<&String> { self.h.label.as_ref() }
+	pub const fn label(&self) -> Option<&String> { self.h.label.as_ref() }
 
 	fn update_start_nest_level(
 		&mut self,
@@ -534,7 +534,7 @@ pub enum Char {
 }
 
 impl Char {
-	fn unwrap(self) -> char {
+	const fn unwrap(self) -> char {
 		match self {
 			Self::Empty => ' ',
 			Self::Text(c)
@@ -549,24 +549,21 @@ impl Char {
 		}
 	}
 
-	#[allow(clippy::trivially_copy_pass_by_ref)]
-	fn color(&self) -> Option<Color> {
+	#[cfg(feature = "colors")]
+	const fn color(&self) -> Option<Color> {
 		match self {
-			Self::Empty => None,
-			Self::Text(_) => None,
+			Self::Empty | Self::Text(_) => None,
 			Self::Margin(_, color)
 			| Self::Label(_, color)
 			| Self::SpanUnderline(_, color)
 			| Self::SpanMarker(_, color)
 			| Self::SpanVertical(color)
 			| Self::SpanHorizontal(color)
-			| Self::SpanMargin(color) => Some(*color),
-			Self::SpanMarginMarker(color) => Some(*color),
+			| Self::SpanMargin(color) | Self::SpanMarginMarker(color) => Some(*color),
 		}
 	}
 
-	#[allow(clippy::trivially_copy_pass_by_ref)]
-	fn is_free(&self) -> bool {
+	const fn is_free(&self) -> bool {
 		match self {
 			Self::Empty => true,
 			_ => false,
@@ -574,7 +571,7 @@ impl Char {
 	}
 
 	#[allow(clippy::trivially_copy_pass_by_ref)]
-	fn is_span_horizontal(&self) -> bool {
+	const fn is_span_horizontal(&self) -> bool {
 		match self {
 			Self::SpanHorizontal(_) => true,
 			_ => false,
@@ -582,7 +579,7 @@ impl Char {
 	}
 
 	#[allow(clippy::trivially_copy_pass_by_ref)]
-	fn is_span_margin(&self) -> bool {
+	const fn is_span_margin(&self) -> bool {
 		match self {
 			Self::SpanMargin(_) => true,
 			_ => false,
@@ -888,7 +885,7 @@ impl Formatter {
 				}
 			}
 
-			important_lines.sort();
+			important_lines.sort_unstable();
 			ImportantLines::Lines(important_lines, viewbox)
 		} else {
 			ImportantLines::All

@@ -1,6 +1,6 @@
 [package]
 name = "source-span"
-version = "2.2.0"
+version = "2.3.0"
 authors = ["Timothée Haudebourg <author@haudebourg.net>"]
 edition = "2018"
 categories = ["parsing"]

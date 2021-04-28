@@ -105,9 +105,7 @@
 //! Each highlight is described by a span, can be associated to a label and
 //! drawn with a specific style (defining what characters and color to use to
 //! draw the lines).
-
-#![allow(clippy::needless_doctest_main)]
-#![warn(clippy::nursery, clippy::must_use_candidate, clippy::pedantic)]
+#![warn(clippy::perf, clippy::must_use_candidate)]
 use std::cmp::{Ord, Ordering, PartialOrd};
 
 mod buffer;
@@ -248,7 +246,7 @@ impl Span {
 			end.shift(c, metrics)
 		}
 
-		Span {
+		Self {
 			start: Position::new(0, 0),
 			last,
 			end,

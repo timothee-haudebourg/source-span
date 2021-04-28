@@ -25,9 +25,11 @@ impl DefaultMetrics {
 	/// Create a new default metrics instance.
 	///
 	/// Tab stop length will be 8.
+	#[must_use]
 	pub const fn new() -> DefaultMetrics { Self::with_tab_stop(8) }
 
 	/// Create a new default metrics with a custom tab stop length.
+	#[must_use]
 	pub const fn with_tab_stop(tab_stop: usize) -> DefaultMetrics { DefaultMetrics { tab_stop } }
 }
 
