@@ -892,7 +892,11 @@ impl Formatter {
 		}
 	}
 
-	fn line_number_margin(&self, span: &Span) -> usize {
+	/// Get the margin length (containing the line numbers) for the given span.
+	/// 
+	/// If line numbers are disabled, this will return 0.
+	#[must_use]
+	pub fn margin_len(&self, span: &Span) -> usize {
 		if self.show_line_numbers {
 			let last_line = match self.viewbox {
 				Some(viewbox) => {
@@ -955,8 +959,8 @@ impl Formatter {
 			});
 		}
 
-		let line_number_margin = self.line_number_margin(&span);
-		let margin = line_number_margin + nest_margin;
+		let margin_len = self.margin_len(&span);
+		let margin = margin_len + nest_margin;
 
 		let mut pos = span.start();
 		let mut lines = vec![CharMap::new()];
@@ -978,7 +982,7 @@ impl Formatter {
 				'\n' => {
 					if is_important_line {
 						let line_charmap = lines.last_mut().unwrap();
-						self.draw_line_number(Some(pos.line), line_charmap, line_number_margin);
+						self.draw_line_number(Some(pos.line), line_charmap, margin_len);
 						self.draw_line_highlights(
 							pos.line,
 							line_charmap,
@@ -992,7 +996,7 @@ impl Formatter {
 					if important_lines.includes(pos.line + 1) {
 						if !is_important_line && !lines.is_empty() {
 							let mut viewbox_charmap = CharMap::new();
-							self.draw_line_number(None, &mut viewbox_charmap, line_number_margin);
+							self.draw_line_number(None, &mut viewbox_charmap, margin_len);
 							self.draw_line_highlights(
 								pos.line,
 								&mut viewbox_charmap,
@@ -1032,7 +1036,7 @@ impl Formatter {
 
 		if is_important_line {
 			let line_charmap = lines.last_mut().unwrap();
-			self.draw_line_number(Some(pos.line), line_charmap, line_number_margin);
+			self.draw_line_number(Some(pos.line), line_charmap, margin_len);
 			self.draw_line_highlights(
 				pos.line,
 				line_charmap,
@@ -1050,17 +1054,17 @@ impl Formatter {
 		&self,
 		line: Option<usize>,
 		charmap: &mut CharMap,
-		line_number_margin: usize,
+		margin_len: usize,
 	) {
-		if line_number_margin > 0 {
+		if margin_len > 0 {
 			charmap.set(
-				line_number_margin - 2,
+				margin_len - 2,
 				0,
 				Char::Margin('|', self.margin_color),
 			);
 			match line {
 				Some(mut line) => {
-					let mut x = line_number_margin - 3;
+					let mut x = margin_len - 3;
 					line += 1;
 
 					while line > 0 {
@@ -1080,7 +1084,7 @@ impl Formatter {
 					}
 				}
 				None => {
-					for x in 0..(line_number_margin - 3) {
+					for x in 0..(margin_len - 3) {
 						charmap.set(x, 0, Char::Margin('.', self.margin_color))
 					}
 				}
