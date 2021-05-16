@@ -487,6 +487,18 @@ impl Formatter {
 		self.highlights.push(Highlight { span, label, style });
 		self.highlights.sort_by(|a, b| a.span.cmp(&b.span));
 	}
+
+	/// Returns the smallest span including every highlights.
+	#[must_use]
+	pub fn span(&self) -> Option<Span> {
+		let mut span: Option<Span> = None;
+
+		for h in &self.highlights {
+			span = Some(span.map(|s| s.union(h.span)).unwrap_or(h.span))
+		}
+
+		span
+	}
 }
 
 /// Highlight with some more information about how to draw the lines.

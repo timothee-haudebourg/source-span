@@ -2,12 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.4.0] - 2020-05-05
+## [Unpublished]
 
-## Added
+### Added
+- `Formatter::span` returning the smallest span including all the formatted highlights.
+
+## [2.4.0] - 2021-05-05
+
+### Added
 - `Formatter::margin_len` returning the size of the margin used to render the line numbers.
 
-## [2.3.0] - 2020-04-28
+## [2.3.0] - 2021-04-28
 
 ### Changed
 - Fix compilation failure without `colors` feature.
