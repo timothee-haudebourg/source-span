@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unpublished]
+## [2.5.0] - 2021-05-16
 
 ### Added
 - `Formatter::span` returning the smallest span including all the formatted highlights.
