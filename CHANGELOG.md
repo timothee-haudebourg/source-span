@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.1] - 2021-05-16
+
+### Changed
+- Default styles `Note` and `Help` are now defined using the single character `-` which is closer to the intended Rust-like style.
+
 ## [2.5.0] - 2021-05-16
 
 ### Added

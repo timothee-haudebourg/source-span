@@ -179,7 +179,7 @@ impl Style {
 	pub fn line(&self) -> char {
 		match self {
 			Self::Error | Self::Warning => '^',
-			Self::Note | Self::Help => '_',
+			Self::Note | Self::Help => '-',
 			Self::Custom(line, _, _) => *line,
 		}
 	}
@@ -189,7 +189,8 @@ impl Style {
 	#[must_use]
 	pub fn marker(&self) -> char {
 		match self {
-			Self::Error | Self::Warning | Self::Note | Self::Help => '^',
+			Self::Error | Self::Warning => '^',
+			Self::Note | Self::Help => '-',
 			Self::Custom(_, marker, _) => *marker,
 		}
 	}
