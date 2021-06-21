@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.0] - 2021-06-21
+
+### Added
+- `Loc::map`, `Loc::try_map`, `Loc::transpose`.
+
 ## [2.5.1] - 2021-05-16
 
 ### Changed
