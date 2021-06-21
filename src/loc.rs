@@ -33,7 +33,7 @@ pub struct Loc<T: ?Sized> {
 impl<T: ?Sized> Loc<T> {
 	/// Associate a span location to some data by wrapping it under `Loc`.
 	pub fn new(t: T, span: Span) -> Loc<T> where T: Sized {
-		Loc {
+		Self {
 			span: span,
 			value: t
 		}
@@ -44,12 +44,28 @@ impl<T: ?Sized> Loc<T> {
 		self.span
 	}
 
+	/// Maps the inner value using the given function.
+	pub fn map<U, F>(self, f: F) -> Loc<U> where F: FnOnce(T) -> U, T: Sized {
+		Loc {
+			span: self.span,
+			value: f(self.value)
+		}
+	}
+
 	/// Convert the inner value.
 	pub fn inner_into<U>(self) -> Loc<U> where T: Into<U> {
 		Loc {
 			span: self.span,
 			value: self.value.into()
 		}
+	}
+
+	/// Tries to map the inner value using the given function.
+	pub fn try_map<U, F, E>(self, f: F) -> Result<Loc<U>, E> where F: FnOnce(T) -> Result<U, E>, T: Sized {
+		Ok(Loc {
+			span: self.span,
+			value: f(self.value)?
+		})
 	}
 
 	/// Try to convert the inner value.
@@ -68,6 +84,18 @@ impl<T: ?Sized> Loc<T> {
 	/// Break the wrapper into the value and its location.
 	pub fn into_raw_parts(self) -> (T, Span) where T: Sized {
 		(self.value, self.span)
+	}
+}
+
+impl<T> Loc<Option<T>> {
+	/// Transforms a `Option<Loc<T>>` into a `Loc<Option<T>>`.
+	/// 
+	/// If the input is `None` then this function returns `Loc::new(None, span)`.
+	pub fn transposed(t: Option<Loc<T>>, span: Span) -> Self {
+		match t {
+			Some(t) => t.map(|t| Some(t)),
+			None => Self::new(None, span)
+		}
 	}
 }
 
