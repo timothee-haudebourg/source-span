@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.7.0] - 2021-09-27
+
+### Added
+- `Position::from`, `Position::from_included` and `Position::to`.
+
 ## [2.6.0] - 2021-06-21
 
 ### Added

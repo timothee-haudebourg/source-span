@@ -1,4 +1,4 @@
-use crate::Metrics;
+use crate::{Metrics, Span};
 use std::fmt;
 
 /// Position in a source file (line and column).
@@ -130,6 +130,39 @@ impl Position {
 	}
 
 	pub fn shift<M: Metrics>(&mut self, c: char, metrics: &M) { *self = self.next(c, metrics) }
+
+	/// Creates the span ending at this position (excluded) from
+	/// `first` included to `last` included.
+	/// 
+	/// It is assumed that this position follows `last`.
+	/// This is equivalent to `Span::new(first, last, *self)`. 
+	#[must_use]
+	#[inline(always)]
+	pub fn from(&self, first: Self, last: Self) -> Span {
+		Span::new(first, last, *self)
+	}
+
+	/// Creates the span ending at this position (included) from
+	/// `first` included to `end` excluded.
+	/// 
+	/// It is assumed that `end` follows this position.
+	/// This is equivalent to `Span::new(first, *self, end)`. 
+	#[must_use]
+	#[inline(always)]
+	pub fn from_included(&self, first: Self, end: Self) -> Span {
+		Span::new(first, *self, end)
+	}
+
+	/// Creates the span starting from this position to
+	/// `last` included and `end` excluded.
+	/// 
+	/// It is assumed that `end` follows `last`.
+	/// This is equivalent to `Span::new(*self, last, end)`. 
+	#[must_use]
+	#[inline(always)]
+	pub fn to(&self, last: Self, end: Self) -> Span {
+		Span::new(*self, last, end)
+	}
 }
 
 impl fmt::Display for Position {
